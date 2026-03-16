@@ -3,4 +3,4 @@ pub mod check;
 mod extract;
 
 pub use allocate::{BASE_OFFSET, PortAllocation, allocate_worktree_ports};
-pub use extract::{PortMapping, extract_port_mappings};
+pub use extract::{PortMapping, extract_port_mappings, suggest_env_var};

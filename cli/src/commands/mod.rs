@@ -1,4 +1,5 @@
 pub mod clean;
+pub mod init;
 pub mod list;
 pub mod logs;
 pub mod promote;

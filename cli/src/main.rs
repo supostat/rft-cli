@@ -28,6 +28,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Analyze compose file and generate .rftrc.toml
+    Init,
     /// Start Docker Compose stacks for worktrees
     Start {
         /// Worktree indices to start (1-indexed, all if omitted)
@@ -93,6 +95,7 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        Command::Init => commands::init::run().await.map_err(Into::into),
         Command::List => commands::list::run().await,
         Command::Start { indices, dry_run } => commands::start::run(indices, dry_run)
             .await
