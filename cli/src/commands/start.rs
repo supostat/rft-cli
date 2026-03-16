@@ -59,6 +59,11 @@ pub async fn run(indices: Vec<usize>) -> Result<()> {
         }
     }
 
+    let project_names: Vec<String> = targets
+        .iter()
+        .map(|wt| compose_project_name(&context.repo_name, wt.index, &wt.branch))
+        .collect();
+
     let mut join_set = JoinSet::new();
 
     for worktree in targets {
@@ -76,14 +81,43 @@ pub async fn run(indices: Vec<usize>) -> Result<()> {
         join_set.spawn(async move { start_single_worktree(params).await });
     }
 
+    let interrupted = collect_results_or_interrupt(&mut join_set).await?;
+
+    if interrupted {
+        eprintln!(
+            "\n{}",
+            "Interrupted! Stopping partially started stacks..."
+                .red()
+                .bold()
+        );
+        cleanup_started_projects(&project_names).await;
+        return Err(RftError::Interrupted);
+    }
+
+    println!();
+    list::run_inner().await?;
+
+    Ok(())
+}
+
+async fn collect_results_or_interrupt(join_set: &mut JoinSet<Result<()>>) -> Result<bool> {
     let mut errors = Vec::new();
 
-    while let Some(result) = join_set.join_next().await {
-        match result {
-            Ok(Ok(())) => {}
-            Ok(Err(error)) => errors.push(error),
-            Err(join_error) => {
-                errors.push(RftError::TaskPanicked(format!("{join_error}")));
+    loop {
+        tokio::select! {
+            result = join_set.join_next() => {
+                match result {
+                    Some(Ok(Ok(()))) => {}
+                    Some(Ok(Err(error))) => errors.push(error),
+                    Some(Err(join_error)) => {
+                        errors.push(RftError::TaskPanicked(format!("{join_error}")));
+                    }
+                    None => break,
+                }
+            }
+            _ = tokio::signal::ctrl_c() => {
+                join_set.abort_all();
+                return Ok(true);
             }
         }
     }
@@ -98,10 +132,23 @@ pub async fn run(indices: Vec<usize>) -> Result<()> {
         )));
     }
 
-    println!();
-    list::run_inner().await?;
+    Ok(false)
+}
 
-    Ok(())
+async fn cleanup_started_projects(project_names: &[String]) {
+    for project_name in project_names {
+        let output = tokio::process::Command::new("docker")
+            .args(["compose", "-p", project_name, "down"])
+            .output()
+            .await;
+
+        match output {
+            Ok(out) if out.status.success() => {
+                eprintln!("  {} {project_name}", "stopped".yellow());
+            }
+            _ => {}
+        }
+    }
 }
 
 async fn start_single_worktree(params: WorktreeStartParams) -> Result<()> {

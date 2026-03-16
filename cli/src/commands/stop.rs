@@ -30,12 +30,27 @@ pub async fn run(indices: Vec<usize>) -> Result<()> {
 
     let mut errors = Vec::new();
 
-    while let Some(result) = join_set.join_next().await {
-        match result {
-            Ok(Ok(())) => {}
-            Ok(Err(error)) => errors.push(error),
-            Err(join_error) => {
-                errors.push(RftError::TaskPanicked(format!("{join_error}")));
+    loop {
+        tokio::select! {
+            result = join_set.join_next() => {
+                match result {
+                    Some(Ok(Ok(()))) => {}
+                    Some(Ok(Err(error))) => errors.push(error),
+                    Some(Err(join_error)) => {
+                        errors.push(RftError::TaskPanicked(format!("{join_error}")));
+                    }
+                    None => break,
+                }
+            }
+            _ = tokio::signal::ctrl_c() => {
+                eprintln!("\n{}", "Interrupted! Waiting for docker compose down to finish...".yellow().bold());
+                // Don't abort stop tasks — let them finish to avoid zombie containers
+                while let Some(result) = join_set.join_next().await {
+                    if let Ok(Err(error)) = result {
+                        errors.push(error);
+                    }
+                }
+                break;
             }
         }
     }

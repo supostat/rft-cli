@@ -40,6 +40,9 @@ pub enum RftError {
 
     #[error("path traversal rejected: {path} escapes {root}")]
     PathTraversal { path: String, root: String },
+
+    #[error("interrupted by user")]
+    Interrupted,
 }
 
 /// Validate that `base.join(relative)` stays within `base`. Rejects `..` components and absolute paths.
