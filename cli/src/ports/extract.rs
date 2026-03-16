@@ -27,8 +27,7 @@ pub fn extract_port_mappings(services: &[ComposeService]) -> Vec<PortMapping> {
 
 pub fn suggest_env_var(service_name: &str, port: u16) -> String {
     let normalized = service_name
-        .replace('-', "_")
-        .replace('.', "_")
+        .replace(['-', '.'], "_")
         .to_uppercase();
 
     format!("{normalized}_PORT_{port}")

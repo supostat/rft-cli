@@ -31,6 +31,12 @@ pub enum RftError {
 
     #[error("config error: {0}")]
     Config(String),
+
+    #[error("promote aborted: {reason}")]
+    PromoteConflict { reason: String },
+
+    #[error("task failed: {0}")]
+    TaskPanicked(String),
 }
 
 pub type Result<T> = std::result::Result<T, RftError>;

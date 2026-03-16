@@ -26,7 +26,7 @@ pub fn allocate_port(
 
     let fallback = default_port as u32 + 100 * worktree_index as u32;
 
-    if fallback > 65535 || fallback < 1024 {
+    if !(1024..=65535).contains(&fallback) {
         return Err(RftError::PortOutOfRange { port: fallback });
     }
 

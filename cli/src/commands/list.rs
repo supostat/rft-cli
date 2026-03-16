@@ -2,11 +2,15 @@ use comfy_table::{Table, ContentArrangement, presets::UTF8_FULL_CONDENSED};
 use miette::Result;
 use owo_colors::OwoColorize;
 
-use crate::context::{RftContext, build_context, filter_worktrees};
+use crate::context::{build_context, filter_worktrees};
 use crate::ports::{PortMapping, PortAllocation, allocate_worktree_ports, BASE_OFFSET};
 use crate::sanitize::compose_project_name;
 
 pub async fn run() -> Result<()> {
+    run_inner().await.map_err(miette::Report::new)
+}
+
+pub async fn run_inner() -> crate::error::Result<()> {
     let context = build_context().await?;
     let non_main = filter_worktrees(&context.worktrees, &[]);
 

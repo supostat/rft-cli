@@ -9,6 +9,7 @@ mod error;
 mod git;
 mod ports;
 mod sanitize;
+mod sync;
 
 #[derive(Parser)]
 #[command(name = "rft", version, about = "Zero-config Docker Compose isolation for git worktrees")]
@@ -70,11 +71,13 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Command::List => commands::list::run().await,
-        Command::Start { .. } => todo!(),
-        Command::Stop { .. } => todo!(),
-        Command::Restart { .. } => todo!(),
-        Command::Promote { .. } => todo!(),
-        Command::Clean => todo!(),
+        Command::Start { indices } => commands::start::run(indices).await.map_err(Into::into),
+        Command::Stop { indices } => commands::stop::run(indices).await.map_err(Into::into),
+        Command::Restart { indices } => commands::restart::run(indices).await.map_err(Into::into),
+        Command::Promote { index, dry_run, files } => {
+            commands::promote::run(index, dry_run, files.as_deref()).await
+        }
+        Command::Clean => commands::clean::run().await.map_err(Into::into),
         Command::Logs { .. } => todo!(),
         Command::Mcp => todo!(),
     }

@@ -70,7 +70,7 @@ fn extract_ports(service: &Value) -> Vec<String> {
 
     ports_seq
         .iter()
-        .filter_map(|entry| port_entry_to_string(entry))
+        .filter_map(port_entry_to_string)
         .collect()
 }
 
@@ -79,9 +79,9 @@ fn port_entry_to_string(entry: &Value) -> Option<String> {
         Value::String(s) => Some(s.clone()),
         Value::Number(n) => Some(n.to_string()),
         Value::Mapping(map) => {
-            let target = map.get(&Value::String("target".into()))?.as_u64()?;
+            let target = map.get(Value::String("target".into()))?.as_u64()?;
             let published = map
-                .get(&Value::String("published".into()))
+                .get(Value::String("published".into()))
                 .and_then(|v| v.as_u64().or_else(|| v.as_str().map(|s| s.parse().ok())?));
 
             match published {
@@ -103,11 +103,11 @@ fn extract_build(service: &Value) -> Option<BuildConfig> {
         }),
         Value::Mapping(map) => {
             let context = map
-                .get(&Value::String("context".into()))
+                .get(Value::String("context".into()))
                 .and_then(Value::as_str)
                 .map(String::from);
             let dockerfile = map
-                .get(&Value::String("dockerfile".into()))
+                .get(Value::String("dockerfile".into()))
                 .and_then(Value::as_str)
                 .map(String::from);
             Some(BuildConfig {
