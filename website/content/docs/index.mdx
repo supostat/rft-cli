@@ -1,0 +1,44 @@
+---
+title: Introduction
+description: Zero-config Docker Compose isolation for git worktrees
+---
+
+**rft** automates Docker Compose stack management for git worktrees. When you work on multiple branches simultaneously, each worktree needs its own set of containers with unique ports. rft handles this automatically.
+
+## The Problem
+
+Git worktrees let you check out multiple branches at once. But if each branch has a Docker Compose stack, you run into port conflicts — two stacks can't both bind to port 3000.
+
+Manual workarounds (editing `.env` files, remembering port offsets) are error-prone and tedious.
+
+## What rft Does
+
+1. **Detects** your compose file and parses port mappings (`${VAR:-default}` format)
+2. **Allocates** unique ports for each worktree using a deterministic formula
+3. **Syncs** compose files, Dockerfiles, and `.env` to each worktree
+4. **Injects** port overrides into each worktree's `.env`
+5. **Manages** all stacks with a single command (`start`, `stop`, `logs`)
+
+## Key Features
+
+- **Zero configuration** — works out of the box if your compose file uses `${VAR:-default}` port format
+- **Parallel execution** — starts and stops all stacks simultaneously
+- **Port isolation** — deterministic port allocation with no conflicts
+- **File sync** — keeps compose files and configs in sync across worktrees
+- **Promote workflow** — transfer changes from any worktree to your current branch
+- **MCP integration** — built-in server for AI agent control
+- **Shell prompt** — one-line status indicator for your terminal
+
+## Quick Example
+
+```bash
+# Install
+cargo install rft-cli
+
+# In a git repo with docker-compose.yml
+rft list       # show worktrees with allocated ports
+rft start      # start all worktree stacks in parallel
+rft logs 1     # stream logs for worktree #1
+rft promote 1  # copy changes from worktree #1 to current branch
+rft clean      # stop everything, remove worktrees
+```

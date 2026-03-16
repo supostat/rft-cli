@@ -1,0 +1,59 @@
+---
+title: Installation
+description: How to install rft and set up your project
+---
+
+## Install rft
+
+Install from crates.io using Cargo:
+
+```bash
+cargo install rft-cli
+```
+
+Verify the installation:
+
+```bash
+rft --version
+```
+
+## Requirements
+
+rft requires the following tools to be available on your system:
+
+- **Git** with worktree support (Git 2.5+)
+- **Docker** with Compose v2 (`docker compose` command, not the legacy `docker-compose`)
+- **Compose file** with ports using `${VAR:-default}` format
+
+## Compose File Format
+
+rft parses port mappings that use environment variable substitution with defaults. Your `docker-compose.yml` must use this pattern:
+
+```yaml
+services:
+  frontend:
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+  api:
+    ports:
+      - "${API_PORT:-8080}:8080"
+  database:
+    ports:
+      - "${DB_PORT:-5432}:5432"
+```
+
+The `:-` syntax tells Docker to use the default value (e.g., `3000`) when the environment variable is not set. rft uses these defaults as the base for port allocation.
+
+### What Won't Work
+
+Hardcoded ports without environment variables are not managed by rft:
+
+```yaml
+# rft cannot override these
+services:
+  frontend:
+    ports:
+      - "3000:3000"
+```
+
+If you have a mix of hardcoded and variable-based ports, rft will manage only the variable-based ones.

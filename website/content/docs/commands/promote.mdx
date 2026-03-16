@@ -1,0 +1,66 @@
+---
+title: rft promote
+description: Transfer changes from a worktree to your current branch
+---
+
+## Usage
+
+```bash
+rft promote <index> [--dry-run] [--files <pattern>]
+```
+
+Transfers changes from the specified worktree to your current working directory (current branch).
+
+## How It Works
+
+rft uses two strategies depending on the file state:
+
+- **Committed files** are transferred via `git checkout`, preserving git history
+- **Uncommitted and untracked files** are copied directly to your working directory
+
+### Excluded Files
+
+rft automatically excludes these files from promotion:
+
+- `.env` files (contain worktree-specific port overrides)
+- Compose files managed by rft
+
+## Options
+
+### --dry-run
+
+Preview which files would be transferred without making any changes:
+
+```bash
+rft promote 1 --dry-run
+```
+
+This is useful for verifying the scope of changes before applying them.
+
+### --files
+
+Filter which files to promote using a glob pattern:
+
+```bash
+# Only promote Rust source files
+rft promote 1 --files "*.rs"
+
+# Only promote files in src/
+rft promote 1 --files "src/*"
+```
+
+## Example Workflow
+
+```bash
+# Check what worktree 2 has
+rft list
+
+# Preview the changes
+rft promote 2 --dry-run
+
+# Promote only the source files
+rft promote 2 --files "src/**"
+
+# Or promote everything
+rft promote 2
+```

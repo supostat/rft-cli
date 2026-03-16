@@ -1,0 +1,36 @@
+---
+title: Commands
+description: Overview of all rft commands
+---
+
+## Command Reference
+
+| Command | Description |
+|---------|-------------|
+| [`rft list`](/docs/commands/list) | Show all worktrees with ports and container status |
+| [`rft start`](/docs/commands/start) | Start Docker Compose stacks in parallel |
+| [`rft stop`](/docs/commands/stop) | Stop running stacks |
+| [`rft logs`](/docs/commands/logs) | Stream container logs |
+| [`rft promote`](/docs/commands/promote) | Transfer changes to current branch |
+| [`rft clean`](/docs/commands/clean) | Full cleanup: stop, remove worktrees, prune Docker |
+| `rft restart [indices...]` | Restart stacks (equivalent to stop + start) |
+| `rft status` | One-line status for shell prompt integration |
+| `rft completions <shell>` | Generate shell completions (bash/zsh/fish) |
+| `rft mcp` | Start MCP server for AI agent integration |
+
+## Index-Based Selection
+
+Most commands accept optional worktree indices. Indices are shown in the `rft list` output.
+
+```bash
+# Operate on all worktrees
+rft start
+
+# Operate on specific worktrees
+rft start 1 3
+
+# Single worktree
+rft logs 1
+```
+
+When no indices are provided, the command operates on all worktrees.

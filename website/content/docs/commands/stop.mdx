@@ -1,0 +1,31 @@
+---
+title: rft stop
+description: Stop Docker Compose stacks for worktrees
+---
+
+## Usage
+
+```bash
+rft stop [indices...]
+```
+
+Stops Docker Compose stacks for the specified worktrees. When no indices are given, stops all running stacks.
+
+## Examples
+
+```bash
+# Stop all worktree stacks
+rft stop
+
+# Stop only worktrees 1 and 3
+rft stop 1 3
+
+# Stop a single worktree
+rft stop 2
+```
+
+Stopping is parallel — all specified stacks receive the stop signal simultaneously.
+
+## Difference from `rft clean`
+
+`rft stop` only stops the Docker containers. The worktree directories, synced files, and Docker images remain intact. Use [`rft clean`](/docs/commands/clean) for a full cleanup.

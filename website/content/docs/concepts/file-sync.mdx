@@ -1,0 +1,59 @@
+---
+title: File Sync
+description: How rft syncs files to worktree directories
+---
+
+## Automatic Sync
+
+When you run `rft start`, rft automatically copies essential files to each worktree directory:
+
+- **Compose file** (`docker-compose.yml` or `compose.yml`)
+- **Dockerfiles** referenced in the compose file
+- **`.env`** file (with port overrides injected)
+
+These files are always synced regardless of configuration.
+
+## .env Handling
+
+The `.env` file receives special treatment:
+
+1. The original `.env` from the repo root is copied to the worktree
+2. Port override variables are appended (or replaced if they already exist)
+3. Any `env_overrides` from configuration are applied with `${VAR}` templates resolved
+
+For example, if your `.env` contains:
+
+```bash
+DATABASE_URL=postgres://localhost:5432/myapp
+```
+
+And rft allocates ports for worktree #1, the worktree's `.env` becomes:
+
+```bash
+DATABASE_URL=postgres://localhost:5432/myapp
+FRONTEND_PORT=23001
+API_PORT=28081
+```
+
+## Custom Sync
+
+Add extra files and directories to sync in your configuration:
+
+```toml
+sync = ["nginx/", "scripts/init.sql", "Makefile"]
+```
+
+Directories are copied recursively. Paths are relative to the repository root.
+
+## env_overrides
+
+Use `env_overrides` to inject computed environment variables that depend on allocated ports:
+
+```toml
+[env_overrides]
+API_URL = "http://localhost:${API_PORT}"
+CORS_ORIGIN = "http://localhost:${FRONTEND_PORT}"
+WEBSOCKET_URL = "ws://localhost:${WS_PORT}"
+```
+
+The `${VAR}` placeholders are replaced with the actual allocated port values for each worktree. This is useful when services need full URLs, not just port numbers.

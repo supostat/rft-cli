@@ -1,0 +1,52 @@
+---
+title: Shell Prompt
+description: Show rft status in your terminal prompt
+---
+
+## rft status
+
+The `rft status` command outputs a compact one-line status string designed for shell prompt integration:
+
+```bash
+rft status
+# Output: rft: 3/5 up
+```
+
+The format is `rft: <running>/<total> up`, showing how many worktree stacks are currently running out of the total.
+
+## Zsh Integration
+
+Add to your `~/.zshrc`:
+
+```bash
+export PS1="$(rft status 2>/dev/null) $PS1"
+```
+
+Or for a more dynamic approach that updates on each prompt:
+
+```bash
+precmd() {
+  local rft_info
+  rft_info=$(rft status 2>/dev/null)
+  if [[ -n "$rft_info" ]]; then
+    PS1="$rft_info $BASE_PS1"
+  else
+    PS1="$BASE_PS1"
+  fi
+}
+BASE_PS1="$PS1"
+```
+
+## Bash Integration
+
+Add to your `~/.bashrc`:
+
+```bash
+export PS1="\$(rft status 2>/dev/null) $PS1"
+```
+
+Note the escaped `\$` — this ensures `rft status` runs on each prompt, not just once at shell startup.
+
+## Behavior Outside Repos
+
+When run outside a git repository or in a repo without worktrees, `rft status` outputs nothing (empty string) and exits silently. The `2>/dev/null` redirect suppresses any error output.

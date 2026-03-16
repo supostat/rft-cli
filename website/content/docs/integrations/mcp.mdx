@@ -1,0 +1,56 @@
+---
+title: MCP Integration
+description: Control rft from AI agents using the Model Context Protocol
+---
+
+## Overview
+
+rft includes a built-in MCP (Model Context Protocol) server. This allows AI agents like Claude Code to manage Docker Compose worktree stacks directly.
+
+## Setup
+
+Add to your Claude Code MCP configuration (`.mcp.json` or project settings):
+
+```json
+{
+  "mcpServers": {
+    "rft": {
+      "command": "rft",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+## Available Tools
+
+The MCP server exposes 6 tools:
+
+| Tool | Description |
+|------|-------------|
+| `rft_list` | List all worktrees with ports and status |
+| `rft_start` | Start Docker Compose stacks |
+| `rft_stop` | Stop running stacks |
+| `rft_restart` | Restart stacks |
+| `rft_promote` | Transfer changes from a worktree |
+| `rft_clean` | Full cleanup of all resources |
+
+## Starting the Server
+
+The MCP server runs via stdio transport:
+
+```bash
+rft mcp
+```
+
+This is intended to be called by the AI agent, not run manually. The agent communicates with the server over stdin/stdout using the MCP protocol.
+
+## Use Cases
+
+With MCP integration, an AI agent can:
+
+- **Check worktree status** before making changes
+- **Start stacks** needed for testing
+- **Stream logs** to diagnose issues
+- **Promote changes** from a feature branch worktree
+- **Clean up** after completing a task

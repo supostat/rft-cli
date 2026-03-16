@@ -1,0 +1,49 @@
+---
+title: rft start
+description: Start Docker Compose stacks for worktrees
+---
+
+## Usage
+
+```bash
+rft start [indices...]
+```
+
+Starts Docker Compose stacks for the specified worktrees. When no indices are given, starts stacks for all worktrees.
+
+## Parallel Execution
+
+All stacks start simultaneously. rft launches `docker compose up -d` for each worktree in parallel, so starting 5 worktrees takes roughly the same time as starting one.
+
+Each stack runs with a unique project name derived from the worktree, preventing Docker Compose name collisions.
+
+## What Happens on Start
+
+1. The compose file is copied to the worktree directory
+2. Dockerfiles referenced in the compose file are copied
+3. `.env` is copied and port overrides are injected
+4. Any files listed in `sync` configuration are copied
+5. `docker compose up -d` runs with a unique project name
+
+## Examples
+
+```bash
+# Start all worktree stacks
+rft start
+
+# Start only worktrees 1 and 3
+rft start 1 3
+
+# Start a single worktree
+rft start 2
+```
+
+## Port Allocation
+
+Before starting, rft allocates unique ports for each worktree. See [Port Allocation](/docs/concepts/port-allocation) for the formula and examples.
+
+You can verify the allocated ports before starting:
+
+```bash
+rft list
+```

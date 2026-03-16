@@ -1,0 +1,32 @@
+---
+title: rft logs
+description: Stream container logs for a worktree stack
+---
+
+## Usage
+
+```bash
+rft logs <index> [service]
+```
+
+Streams Docker Compose logs for the specified worktree's stack.
+
+## Arguments
+
+- **index** (required) — the worktree index from `rft list`
+- **service** (optional) — a specific service name to filter logs
+
+## Examples
+
+```bash
+# Stream all logs for worktree 1
+rft logs 1
+
+# Stream only the API service logs
+rft logs 1 api
+
+# Stream frontend logs
+rft logs 2 frontend
+```
+
+Logs are streamed in real-time. Press `Ctrl+C` to stop.

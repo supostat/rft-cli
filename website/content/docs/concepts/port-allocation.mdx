@@ -1,0 +1,79 @@
+---
+title: Port Allocation
+description: How rft calculates unique ports for each worktree
+---
+
+## Formula
+
+rft allocates ports using a deterministic formula:
+
+```
+allocated_port = base_offset + default_port + worktree_index
+```
+
+Where:
+
+- **base_offset** — configurable, defaults to `20000`
+- **default_port** — the default value from `${VAR:-default}` in your compose file
+- **worktree_index** — the 1-based index of the worktree
+
+## Example
+
+Given a compose file with:
+
+```yaml
+services:
+  frontend:
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+  api:
+    ports:
+      - "${API_PORT:-8080}:8080"
+```
+
+The allocated ports are:
+
+| Worktree | FRONTEND_PORT (3000) | API_PORT (8080) |
+|----------|---------------------|-----------------|
+| #1 | 23001 | 28081 |
+| #2 | 23002 | 28082 |
+| #3 | 23003 | 28083 |
+| #4 | 23004 | 28084 |
+
+## Custom Offset
+
+Change the base offset in `.rftrc.toml`:
+
+```toml
+port_offset = 30000
+```
+
+Or via environment variable:
+
+```bash
+RFT_PORT_OFFSET=30000 rft start
+```
+
+With `port_offset = 30000`, the same example produces:
+
+| Worktree | FRONTEND_PORT | API_PORT |
+|----------|---------------|----------|
+| #1 | 33001 | 38081 |
+| #2 | 33002 | 38082 |
+
+## Overflow Fallback
+
+If the calculated port exceeds 65535 (the maximum valid port number), rft falls back to an alternative formula:
+
+```
+fallback_port = default_port + 100 * worktree_index
+```
+
+For example, with a high default port like 60000:
+
+| Worktree | Normal (exceeds 65535) | Fallback |
+|----------|----------------------|----------|
+| #1 | 80001 (invalid) | 60100 |
+| #2 | 80002 (invalid) | 60200 |
+
+This ensures ports always stay within the valid range.

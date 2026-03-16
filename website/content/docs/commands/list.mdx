@@ -1,0 +1,29 @@
+---
+title: rft list
+description: Show worktrees with allocated ports and container status
+---
+
+## Usage
+
+```bash
+rft list
+```
+
+Displays a table of all git worktrees with their allocated ports and Docker container status.
+
+## Output Format
+
+```
+  # │ Branch       │ FRONTEND_PORT │ API_PORT │ Status
+ ───┼──────────────┼───────────────┼──────────┼────────
+  1 │ feature-auth │ 23001         │ 28081    │ running
+  2 │ fix-db-leak  │ 23002         │ 28082    │ stopped
+  3 │ refactor-api │ 23003         │ 28083    │ running
+```
+
+The table shows:
+
+- **#** — worktree index (used with other commands like `start`, `stop`, `logs`)
+- **Branch** — the git branch checked out in the worktree
+- **Port columns** — one column per port variable, showing the allocated port
+- **Status** — whether the Docker Compose stack is currently running

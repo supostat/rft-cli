@@ -1,0 +1,93 @@
+---
+title: Configuration
+description: Configure rft with .rftrc.toml, .rftrc.json, or package.json
+---
+
+rft works without any configuration. When you need to customize behavior, create a config file in your repository root.
+
+## Configuration Files
+
+rft looks for configuration in the following order:
+
+1. `.rftrc.toml` (recommended)
+2. `.rftrc.json`
+3. `package.json` (under the `rft` key)
+
+Only the first found file is used.
+
+## Options
+
+### sync
+
+Extra files and directories to copy into each worktree alongside the compose file and Dockerfiles.
+
+```toml
+sync = ["nginx/", "scripts/init.sql", "Makefile"]
+```
+
+Directories are copied recursively. Paths are relative to the repository root.
+
+### port_offset
+
+Override the base offset for port allocation. Default is `20000`.
+
+```toml
+port_offset = 30000
+```
+
+See [Port Allocation](/docs/concepts/port-allocation) for the full formula.
+
+### env_overrides
+
+Environment variable templates injected into each worktree's `.env`. Use `${VAR}` syntax to reference allocated port values.
+
+```toml
+[env_overrides]
+API_URL = "http://localhost:${API_PORT}"
+WEBSOCKET_URL = "ws://localhost:${WS_PORT}"
+CORS_ORIGIN = "http://localhost:${FRONTEND_PORT}"
+```
+
+This is useful when services need to know each other's URLs, not just ports.
+
+## JSON Format
+
+The same configuration in `.rftrc.json`:
+
+```json
+{
+  "sync": ["nginx/", "scripts/init.sql"],
+  "port_offset": 30000,
+  "env_overrides": {
+    "API_URL": "http://localhost:${API_PORT}",
+    "CORS_ORIGIN": "http://localhost:${FRONTEND_PORT}"
+  }
+}
+```
+
+## package.json
+
+For JavaScript/TypeScript projects, you can embed the configuration in `package.json`:
+
+```json
+{
+  "name": "my-app",
+  "rft": {
+    "sync": ["nginx/"],
+    "env_overrides": {
+      "API_URL": "http://localhost:${API_PORT}"
+    }
+  }
+}
+```
+
+## Environment Variables
+
+These environment variables override config file values:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `RFT_PORT_OFFSET` | Override `port_offset` | `RFT_PORT_OFFSET=30000` |
+| `RFT_SYNC` | Override `sync` (comma-separated) | `RFT_SYNC=nginx/,scripts/` |
+
+Environment variables take precedence over config file values.

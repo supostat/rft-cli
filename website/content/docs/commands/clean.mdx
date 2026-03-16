@@ -1,0 +1,24 @@
+---
+title: rft clean
+description: Full cleanup of worktrees, containers, and Docker resources
+---
+
+## Usage
+
+```bash
+rft clean
+```
+
+Performs a complete cleanup of all rft-managed resources.
+
+## What Gets Removed
+
+1. **Docker containers** — all running stacks are stopped and removed
+2. **Worktree directories** — git worktrees created by rft are removed
+3. **Docker resources** — unused images and volumes are pruned
+
+## When to Use
+
+Use `rft clean` when you're done working with worktrees and want to reclaim disk space and Docker resources. This is a destructive operation — all worktree data that hasn't been committed and pushed will be lost.
+
+If you only want to stop containers without removing worktrees, use [`rft stop`](/docs/commands/stop) instead.
