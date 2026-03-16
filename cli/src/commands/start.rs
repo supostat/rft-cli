@@ -135,9 +135,7 @@ async fn collect_results_or_interrupt(join_set: &mut JoinSet<Result<()>>) -> Res
             eprintln!("{}", format!("error: {error}").red());
         }
         let count = errors.len();
-        return Err(RftError::Config(format!(
-            "{count} worktree(s) failed to start"
-        )));
+        return Err(RftError::Multiple { count });
     }
 
     Ok(false)

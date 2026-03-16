@@ -56,14 +56,6 @@ pub async fn get_worktrees(
     parse_porcelain_output(&raw, main_branch)
 }
 
-pub async fn get_non_main_worktrees(
-    repo_root: &Path,
-    main_branch: Option<&str>,
-) -> Result<Vec<WorktreeInfo>> {
-    let worktrees = get_worktrees(repo_root, main_branch).await?;
-    Ok(worktrees.into_iter().filter(|wt| !wt.is_main).collect())
-}
-
 pub async fn get_worktree_by_index(
     repo_root: &Path,
     index: usize,

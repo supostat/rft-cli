@@ -43,6 +43,9 @@ pub enum RftError {
 
     #[error("interrupted by user")]
     Interrupted,
+
+    #[error("{count} operation(s) failed")]
+    Multiple { count: usize },
 }
 
 /// Validate that `base.join(relative)` stays within `base`. Rejects `..` components and absolute paths.

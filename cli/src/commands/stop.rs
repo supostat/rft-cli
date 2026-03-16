@@ -60,9 +60,7 @@ pub async fn run(indices: Vec<usize>) -> Result<()> {
             eprintln!("{}", format!("error: {error}").red());
         }
         let count = errors.len();
-        return Err(RftError::Config(format!(
-            "{count} worktree(s) failed to stop"
-        )));
+        return Err(RftError::Multiple { count });
     }
 
     Ok(())

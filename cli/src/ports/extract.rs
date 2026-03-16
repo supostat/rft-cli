@@ -1,6 +1,11 @@
+use std::sync::LazyLock;
+
 use regex::Regex;
 
 use crate::compose::ComposeService;
+
+static ENV_VAR_PATTERN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\$\{([A-Z_][A-Z0-9_]*):-(\d+)\}$").expect("valid regex"));
 
 #[derive(Debug, Clone)]
 pub struct PortMapping {
@@ -12,15 +17,13 @@ pub struct PortMapping {
 }
 
 pub fn extract_port_mappings(services: &[ComposeService]) -> Vec<PortMapping> {
-    let env_var_pattern = Regex::new(r"^\$\{([A-Z_][A-Z0-9_]*):-(\d+)\}$").expect("valid regex");
-
     services
         .iter()
         .flat_map(|service| {
             service
                 .ports
                 .iter()
-                .filter_map(|raw| parse_port_string(raw, &service.name, &env_var_pattern))
+                .filter_map(|raw| parse_port_string(raw, &service.name, &ENV_VAR_PATTERN))
         })
         .collect()
 }
