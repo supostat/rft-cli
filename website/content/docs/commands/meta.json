@@ -1,0 +1,15 @@
+{
+  "pages": [
+    "index",
+    "list",
+    "start",
+    "stop",
+    "restart",
+    "logs",
+    "promote",
+    "clean",
+    "status",
+    "completions",
+    "mcp"
+  ]
+}

@@ -1,0 +1,42 @@
+---
+title: rft completions
+description: Generate shell completion scripts
+---
+
+## Usage
+
+```bash
+rft completions <shell>
+```
+
+Generates a completion script for the specified shell and prints it to stdout.
+
+## Supported Shells
+
+- `bash`
+- `zsh`
+- `fish`
+- `powershell`
+- `elvish`
+
+## Installation
+
+### Zsh
+
+```bash
+rft completions zsh > ~/.zfunc/_rft
+# Add to .zshrc: fpath=(~/.zfunc $fpath); autoload -Uz compinit && compinit
+```
+
+### Bash
+
+```bash
+rft completions bash > /etc/bash_completion.d/rft
+# Or for user-level: rft completions bash >> ~/.bash_completion
+```
+
+### Fish
+
+```bash
+rft completions fish > ~/.config/fish/completions/rft.fish
+```

@@ -1,0 +1,27 @@
+---
+title: rft status
+description: One-line status for shell prompt integration
+---
+
+## Usage
+
+```bash
+rft status
+```
+
+Outputs a compact one-line string showing how many worktree stacks are running:
+
+```
+rft: 3/5 up
+```
+
+## Output Formats
+
+| Condition | Output |
+|-----------|--------|
+| No worktrees | `rft: no worktrees` |
+| All down | `rft: all down` |
+| Some running | `rft: 3/5 up` |
+| All running | `rft: all 5 up` |
+
+Designed for [shell prompt integration](/docs/integrations/shell-prompt). Outputs nothing and exits silently outside a git repository.

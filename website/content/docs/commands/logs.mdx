@@ -16,6 +16,10 @@ Streams Docker Compose logs for the specified worktree's stack.
 - **index** (required) — the worktree index from `rft list`
 - **service** (optional) — a specific service name to filter logs
 
+## Flags
+
+- `--no-follow` — print logs and exit instead of streaming
+
 ## Examples
 
 ```bash
@@ -25,8 +29,8 @@ rft logs 1
 # Stream only the API service logs
 rft logs 1 api
 
-# Stream frontend logs
-rft logs 2 frontend
+# Print last 100 lines and exit
+rft logs 1 --no-follow
 ```
 
-Logs are streamed in real-time. Press `Ctrl+C` to stop.
+By default, logs are streamed in real-time (follow mode). Press `Ctrl+C` to stop.

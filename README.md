@@ -117,7 +117,12 @@ Add to your Claude Code config:
 Add to `.zshrc` / `.bashrc`:
 
 ```bash
-export PS1="$(rft status 2>/dev/null) $PS1"
+# Zsh: add to ~/.zshrc
+BASE_PS1="$PS1"
+precmd() { PS1="$(rft status 2>/dev/null) $BASE_PS1"; }
+
+# Bash: add to ~/.bashrc
+export PS1="\$(rft status 2>/dev/null) $PS1"
 ```
 
 ## Requirements

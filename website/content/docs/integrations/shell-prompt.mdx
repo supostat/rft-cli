@@ -19,12 +19,7 @@ The format is `rft: <running>/<total> up`, showing how many worktree stacks are 
 Add to your `~/.zshrc`:
 
 ```bash
-export PS1="$(rft status 2>/dev/null) $PS1"
-```
-
-Or for a more dynamic approach that updates on each prompt:
-
-```bash
+BASE_PS1="$PS1"
 precmd() {
   local rft_info
   rft_info=$(rft status 2>/dev/null)
@@ -34,8 +29,9 @@ precmd() {
     PS1="$BASE_PS1"
   fi
 }
-BASE_PS1="$PS1"
 ```
+
+The `precmd` hook runs before each prompt, so `rft status` updates in real-time as you start and stop stacks.
 
 ## Bash Integration
 

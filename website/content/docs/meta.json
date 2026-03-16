@@ -1,0 +1,14 @@
+{
+  "pages": [
+    "---Introduction---",
+    "index",
+    "installation",
+    "configuration",
+    "---Commands---",
+    "commands",
+    "---Concepts---",
+    "concepts",
+    "---Integrations---",
+    "integrations"
+  ]
+}

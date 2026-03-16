@@ -18,7 +18,7 @@ export const baseOptions: BaseLayoutProps = {
     },
     {
       text: "GitHub",
-      url: "https://github.com/nicktretyakov/rft-cli",
+      url: "https://github.com/ingvar/rft",
       external: true,
     },
   ],

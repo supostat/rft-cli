@@ -1,0 +1,24 @@
+---
+title: rft restart
+description: Restart Docker Compose stacks for worktrees
+---
+
+## Usage
+
+```bash
+rft restart [indices...]
+```
+
+Sequentially stops then starts the specified worktree stacks. If no indices are given, all non-main worktrees are restarted.
+
+Equivalent to running `rft stop` followed by `rft start`. Within each phase, worktrees are processed in parallel.
+
+## Examples
+
+```bash
+# Restart all worktree stacks
+rft restart
+
+# Restart only worktree 2
+rft restart 2
+```
