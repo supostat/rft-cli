@@ -35,13 +35,13 @@ pub async fn build_context_from(cwd: &std::path::Path) -> Result<RftContext> {
         crate::compose::parse_compose_file(&compose_path_clone)
     })
     .await
-    .expect("compose parse task panicked")?;
+    .map_err(|e| crate::error::RftError::TaskPanicked(e.to_string()))??;
 
     let port_mappings = crate::ports::extract_port_mappings(&compose_file.services);
     let repo_root_clone = repo_root.clone();
     let config = tokio::task::spawn_blocking(move || crate::config::load_config(&repo_root_clone))
         .await
-        .expect("config load task panicked");
+        .map_err(|e| crate::error::RftError::TaskPanicked(e.to_string()))?;
     let worktrees = crate::git::get_worktrees(&repo_root).await?;
 
     Ok(RftContext {

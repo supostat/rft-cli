@@ -44,6 +44,7 @@ pub async fn sync_worktree_files(
     }
 
     for extra in extra_sync {
+        crate::error::validate_path_within(repo_root, extra)?;
         let source = repo_root.join(extra);
         if !source.exists() {
             continue;

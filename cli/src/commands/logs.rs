@@ -46,7 +46,7 @@ pub async fn run(index: usize, service: Option<String>, no_follow: bool) -> Resu
     if !status.success() {
         return Err(crate::error::RftError::CommandFailed {
             cmd: format!("docker {}", args.join(" ")),
-            stderr: String::new(),
+            stderr: "exited with non-zero status".to_string(),
         });
     }
 

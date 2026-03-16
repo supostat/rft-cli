@@ -202,6 +202,9 @@ pub async fn promote_files(
         .collect();
 
     for file in &copy_files {
+        crate::error::validate_path_within(worktree_path, &file.path)?;
+        crate::error::validate_path_within(repo_root, &file.path)?;
+
         let source = worktree_path.join(&file.path);
         let destination = repo_root.join(&file.path);
 

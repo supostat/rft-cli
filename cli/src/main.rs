@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 use clap::{CommandFactory, Parser, Subcommand};
 use miette::Result;
 
@@ -29,9 +31,6 @@ enum Command {
     Start {
         /// Worktree indices to start (1-indexed, all if omitted)
         indices: Vec<usize>,
-        /// Show what would be done without executing
-        #[arg(long)]
-        dry_run: bool,
     },
     /// Stop Docker Compose stacks
     Stop {
@@ -86,10 +85,7 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Command::List => commands::list::run().await,
-        Command::Start {
-            indices,
-            dry_run: _,
-        } => commands::start::run(indices).await.map_err(Into::into),
+        Command::Start { indices } => commands::start::run(indices).await.map_err(Into::into),
         Command::Stop { indices } => commands::stop::run(indices).await.map_err(Into::into),
         Command::Restart { indices } => commands::restart::run(indices).await.map_err(Into::into),
         Command::Promote {

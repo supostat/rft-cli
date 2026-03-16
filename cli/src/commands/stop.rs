@@ -44,7 +44,10 @@ pub async fn run(indices: Vec<usize>) -> Result<()> {
         for error in &errors {
             eprintln!("{}", format!("error: {error}").red());
         }
-        return Err(errors.into_iter().next().expect("checked non-empty"));
+        let count = errors.len();
+        return Err(RftError::Config(format!(
+            "{count} worktree(s) failed to stop"
+        )));
     }
 
     Ok(())

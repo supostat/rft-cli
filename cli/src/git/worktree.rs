@@ -62,7 +62,7 @@ pub async fn get_worktree_by_index(repo_root: &Path, index: usize) -> Result<Wor
     let worktrees = get_worktrees(repo_root).await?;
     worktrees
         .into_iter()
-        .find(|wt| wt.index == index)
+        .find(|wt| !wt.is_main && wt.index == index)
         .ok_or(RftError::WorktreeNotFound { index })
 }
 
