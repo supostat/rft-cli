@@ -1,0 +1,263 @@
+use std::collections::HashMap;
+use std::path::Path;
+
+use serde::Deserialize;
+
+#[derive(Debug, Clone, Default)]
+pub struct RftConfig {
+    pub sync: Vec<String>,
+    pub env_overrides: HashMap<String, String>,
+    pub port_offset: Option<u32>,
+}
+
+#[derive(Deserialize)]
+struct ConfigFile {
+    sync: Option<Vec<String>>,
+    env_overrides: Option<HashMap<String, String>>,
+    port_offset: Option<u32>,
+}
+
+#[derive(Deserialize)]
+struct PackageJson {
+    rft: Option<ConfigFile>,
+}
+
+impl From<ConfigFile> for RftConfig {
+    fn from(file: ConfigFile) -> Self {
+        Self {
+            sync: file.sync.unwrap_or_default(),
+            env_overrides: file.env_overrides.unwrap_or_default(),
+            port_offset: file.port_offset,
+        }
+    }
+}
+
+pub fn load_config(repo_root: &Path) -> RftConfig {
+    let mut config = load_from_files(repo_root);
+    apply_env_overrides(&mut config, |key| std::env::var(key));
+    config
+}
+
+fn load_from_files(repo_root: &Path) -> RftConfig {
+    if let Some(config) = load_toml(repo_root) {
+        return config;
+    }
+    if let Some(config) = load_json(repo_root) {
+        return config;
+    }
+    if let Some(config) = load_package_json(repo_root) {
+        return config;
+    }
+    RftConfig::default()
+}
+
+fn load_toml(repo_root: &Path) -> Option<RftConfig> {
+    let path = repo_root.join(".rftrc.toml");
+    let content = std::fs::read_to_string(&path).ok()?;
+    match toml::from_str::<ConfigFile>(&content) {
+        Ok(parsed) => Some(parsed.into()),
+        Err(error) => {
+            eprintln!("warning: failed to parse {}: {error}", path.display());
+            None
+        }
+    }
+}
+
+fn load_json(repo_root: &Path) -> Option<RftConfig> {
+    let path = repo_root.join(".rftrc.json");
+    let content = std::fs::read_to_string(&path).ok()?;
+    match serde_json::from_str::<ConfigFile>(&content) {
+        Ok(parsed) => Some(parsed.into()),
+        Err(error) => {
+            eprintln!("warning: failed to parse {}: {error}", path.display());
+            None
+        }
+    }
+}
+
+fn load_package_json(repo_root: &Path) -> Option<RftConfig> {
+    let path = repo_root.join("package.json");
+    let content = std::fs::read_to_string(&path).ok()?;
+    match serde_json::from_str::<PackageJson>(&content) {
+        Ok(parsed) => parsed.rft.map(Into::into),
+        Err(error) => {
+            eprintln!("warning: failed to parse {}: {error}", path.display());
+            None
+        }
+    }
+}
+
+fn apply_env_overrides(config: &mut RftConfig, env_var: impl Fn(&str) -> std::result::Result<String, std::env::VarError>) {
+    if let Ok(value) = env_var("RFT_PORT_OFFSET") {
+        match value.parse::<u32>() {
+            Ok(offset) => config.port_offset = Some(offset),
+            Err(error) => {
+                eprintln!("warning: invalid RFT_PORT_OFFSET value '{value}': {error}");
+            }
+        }
+    }
+
+    if let Ok(value) = env_var("RFT_SYNC") {
+        config.sync = value
+            .split(',')
+            .map(|segment| segment.trim().to_string())
+            .filter(|segment| !segment.is_empty())
+            .collect();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn loads_toml_config() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join(".rftrc.toml"),
+            r#"
+sync = ["docker-compose.yml", ".env"]
+port_offset = 100
+
+[env_overrides]
+DATABASE_URL = "postgres://localhost/test"
+"#,
+        )
+        .unwrap();
+
+        let config = load_from_files(dir.path());
+
+        assert_eq!(config.sync, vec!["docker-compose.yml", ".env"]);
+        assert_eq!(config.port_offset, Some(100));
+        assert_eq!(
+            config.env_overrides.get("DATABASE_URL").unwrap(),
+            "postgres://localhost/test"
+        );
+    }
+
+    #[test]
+    fn loads_json_config() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join(".rftrc.json"),
+            r#"{
+                "sync": ["Makefile"],
+                "port_offset": 200
+            }"#,
+        )
+        .unwrap();
+
+        let config = load_from_files(dir.path());
+
+        assert_eq!(config.sync, vec!["Makefile"]);
+        assert_eq!(config.port_offset, Some(200));
+    }
+
+    #[test]
+    fn loads_from_package_json() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join("package.json"),
+            r#"{
+                "name": "my-app",
+                "rft": {
+                    "sync": ["tsconfig.json"],
+                    "port_offset": 50
+                }
+            }"#,
+        )
+        .unwrap();
+
+        let config = load_from_files(dir.path());
+
+        assert_eq!(config.sync, vec!["tsconfig.json"]);
+        assert_eq!(config.port_offset, Some(50));
+    }
+
+    #[test]
+    fn toml_takes_priority_over_json() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join(".rftrc.toml"),
+            r#"port_offset = 10"#,
+        )
+        .unwrap();
+        fs::write(
+            dir.path().join(".rftrc.json"),
+            r#"{"port_offset": 20}"#,
+        )
+        .unwrap();
+
+        let config = load_from_files(dir.path());
+
+        assert_eq!(config.port_offset, Some(10));
+    }
+
+    #[test]
+    fn returns_default_when_no_config_found() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = load_from_files(dir.path());
+
+        assert!(config.sync.is_empty());
+        assert!(config.env_overrides.is_empty());
+        assert_eq!(config.port_offset, None);
+    }
+
+    #[test]
+    fn returns_default_on_invalid_toml() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join(".rftrc.toml"), "{{invalid toml").unwrap();
+
+        let config = load_from_files(dir.path());
+
+        assert!(config.sync.is_empty());
+        assert_eq!(config.port_offset, None);
+    }
+
+    fn fake_env(overrides: &[(&str, &str)]) -> impl Fn(&str) -> std::result::Result<String, std::env::VarError> {
+        let map: HashMap<String, String> = overrides
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+        move |key: &str| {
+            map.get(key)
+                .cloned()
+                .ok_or(std::env::VarError::NotPresent)
+        }
+    }
+
+    #[test]
+    fn env_var_overrides_port_offset() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join(".rftrc.toml"), r#"port_offset = 10"#).unwrap();
+
+        let mut config = load_from_files(dir.path());
+        apply_env_overrides(&mut config, fake_env(&[("RFT_PORT_OFFSET", "999")]));
+
+        assert_eq!(config.port_offset, Some(999));
+    }
+
+    #[test]
+    fn env_var_overrides_sync() {
+        let mut config = RftConfig::default();
+        apply_env_overrides(&mut config, fake_env(&[("RFT_SYNC", "a.yml, b.yml")]));
+
+        assert_eq!(config.sync, vec!["a.yml", "b.yml"]);
+    }
+
+    #[test]
+    fn package_json_without_rft_field_returns_default() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join("package.json"),
+            r#"{"name": "my-app", "version": "1.0.0"}"#,
+        )
+        .unwrap();
+
+        let config = load_from_files(dir.path());
+
+        assert!(config.sync.is_empty());
+        assert_eq!(config.port_offset, None);
+    }
+}

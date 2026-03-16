@@ -1,0 +1,19 @@
+# IDE
+.vscode/
+
+# Claude
+.claude/
+
+# Phases (local specs)
+phases/
+
+# Rust
+cli/target/
+
+# Website
+website/node_modules/
+website/.next/
+website/out/
+
+# OS
+.DS_Store
