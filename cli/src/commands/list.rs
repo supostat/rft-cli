@@ -87,6 +87,68 @@ impl std::fmt::Display for ContainerStatus {
     }
 }
 
+pub async fn list_as_text() -> crate::error::Result<String> {
+    let context = build_context().await?;
+    let non_main = filter_worktrees(&context.worktrees, &[]);
+
+    if non_main.is_empty() {
+        return Ok("No worktrees found (only main branch).".to_string());
+    }
+
+    let base_offset = context.config.port_offset.unwrap_or(BASE_OFFSET);
+    let mut rows = Vec::new();
+
+    for worktree in &non_main {
+        let project_name = compose_project_name(
+            &context.repo_name,
+            worktree.index,
+            &worktree.branch,
+        );
+        let ports = allocate_worktree_ports(
+            &context.port_mappings,
+            worktree.index,
+            base_offset,
+        ).unwrap_or_default();
+
+        let status = get_container_status(&project_name).await;
+
+        rows.push(WorktreeRow {
+            index: worktree.index,
+            branch: worktree.branch.clone(),
+            status,
+            project_name,
+            ports,
+        });
+    }
+
+    Ok(render_table_as_text(&rows))
+}
+
+fn render_table_as_text(rows: &[WorktreeRow]) -> String {
+    let mut lines = Vec::new();
+    lines.push(format!("{:<4} {:<30} {:<10} {}", "#", "Branch", "Status", "Ports"));
+    lines.push("-".repeat(80));
+
+    for row in rows {
+        let ports_display = if row.ports.is_empty() {
+            "-".to_string()
+        } else {
+            row.ports
+                .iter()
+                .map(|allocation| format!("{}={}", allocation.env_var, allocation.port))
+                .collect::<Vec<_>>()
+                .join(", ")
+        };
+
+        lines.push(format!(
+            "{:<4} {:<30} {:<10} {}",
+            row.index, row.branch, row.status, ports_display
+        ));
+    }
+
+    lines.join("\n")
+}
+
 pub fn render_table(rows: &[WorktreeRow], port_mappings: &[PortMapping]) {
     let mut table = Table::new();
     table
