@@ -13,17 +13,21 @@ cargo install rft-cli
 ## Usage
 
 ```bash
-rft list       # show worktrees with allocated ports
-rft start      # start all worktree stacks in parallel
-rft stop       # stop all stacks
+# Prepare: compose file with ${VAR:-default} ports, then create worktrees
+git worktree add -b feature/auth ../myproject-auth
+
+# Manage isolated stacks
+rft list       # see worktrees with unique allocated ports
+rft start      # start all stacks in parallel
 rft logs 1     # stream logs for worktree #1
-rft promote 1  # copy changes from worktree #1 to current branch
+rft stop       # stop all stacks
+rft promote 1  # transfer changes to current branch
 rft clean      # stop everything, remove worktrees
 ```
 
 ## Requirements
 
-- Git with worktree support
+- Git 2.5+ (worktree support)
 - Docker with Compose v2 (`docker compose`)
 - Ports in compose file using `${VAR:-default}` format
 

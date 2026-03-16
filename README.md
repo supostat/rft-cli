@@ -6,30 +6,98 @@ When you work on multiple branches simultaneously using `git worktree`, each wor
 
 ## Quick Start
 
+### 1. Install
+
 ```bash
 cargo install rft-cli
 ```
 
-In a git repo with `docker-compose.yml` that uses env vars for ports:
+### 2. Prepare your compose file
+
+Ports **must** use the `${VAR:-default}` format:
 
 ```yaml
+# docker-compose.yml
 services:
   frontend:
+    build: ./frontend
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
   api:
+    build: ./backend
     ports:
       - "${API_PORT:-8080}:8080"
 ```
 
+### 3. Set up git worktrees
+
+A git worktree is a separate directory checked out at a different branch, sharing the same repo history. The recommended approach is **bare repo + worktrees** — every branch (including main) lives in its own directory:
+
 ```bash
-rft list       # show worktrees with allocated ports
-rft start      # start all worktree stacks in parallel
-rft stop       # stop all stacks
-rft logs 1     # stream logs for worktree #1
-rft promote 1  # copy changes from worktree #1 to current branch
-rft clean      # stop everything, remove worktrees
+# Clone your project as a bare repo
+mkdir ~/projects/myapp && cd ~/projects/myapp
+git clone --bare git@github.com:you/myapp.git .bare
+
+# Create a .git file (not directory!) so git commands work from this dir.
+# Without it, git doesn't know where the repo is.
+echo "gitdir: ./.bare" > .git
+
+# Bare clones don't track remote branches by default.
+# This tells git to fetch all branches from origin — same as a normal clone.
+git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+
+# Create a worktree for main
+git worktree add main
+
+# Create worktrees for feature branches
+git worktree add feature-auth -b feature/auth
+git worktree add feature-payments -b feature/payments
 ```
+
+Result:
+
+```
+~/projects/myapp/
+├── .bare/              ← git objects (not a working directory)
+├── .git                ← file pointing to .bare
+├── main/               ← main branch
+├── feature-auth/       ← feature/auth branch
+└── feature-payments/   ← feature/payments branch
+```
+
+Each directory has its own files. You can `cd` into any, edit, commit, and run Docker independently.
+
+**The problem:** `docker compose up` in each directory tries to bind the same ports (3000, 8080). That's what rft solves.
+
+> **Alternative:** you can also create worktrees from a regular (non-bare) repo with `git worktree add ../myapp-auth -b feature/auth`. rft works with both approaches.
+
+### 4. Use rft
+
+Run `rft` from the **main worktree** (`~/projects/myapp/main`):
+
+```bash
+cd ~/projects/myapp/main
+
+rft list       # see worktrees with unique allocated ports
+rft start      # start all stacks in parallel
+rft logs 1     # stream logs for worktree #1 (feature/auth)
+rft stop       # stop all stacks
+rft promote 1  # transfer changes from worktree #1 to current branch
+rft clean      # stop everything, remove worktrees and Docker resources
+```
+
+rft assigns unique ports to each worktree automatically:
+
+```
+┌───┬──────────────────┬────────┬────────────────────────────────────┐
+│ # │ Branch           │ Status │ Ports                              │
+├───┼──────────────────┼────────┼────────────────────────────────────┤
+│ 1 │ feature/auth     │ down   │ FRONTEND_PORT=23001, API_PORT=28081│
+│ 2 │ feature/payments │ down   │ FRONTEND_PORT=23002, API_PORT=28082│
+└───┴──────────────────┴────────┴────────────────────────────────────┘
+```
+
+Main branch keeps default ports (`3000`, `8080`) — rft doesn't touch it.
 
 ## How It Works
 
@@ -64,6 +132,9 @@ sync = ["nginx/", "scripts/init.sql"]
 
 # Custom port offset (default: 20000)
 port_offset = 30000
+
+# Main branch name (default: auto-detects "main" or "master")
+main_branch = "develop"
 
 # Environment variable templates (${VAR} substituted with allocated port)
 [env_overrides]

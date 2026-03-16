@@ -32,13 +32,23 @@ Manual workarounds (editing `.env` files, remembering port offsets) are error-pr
 ## Quick Example
 
 ```bash
-# Install
 cargo install rft-cli
 
-# In a git repo with docker-compose.yml
-rft list       # show worktrees with allocated ports
-rft start      # start all worktree stacks in parallel
+# Set up bare repo with worktrees
+mkdir ~/projects/myapp && cd ~/projects/myapp
+git clone --bare git@github.com:you/myapp.git .bare
+echo "gitdir: ./.bare" > .git                               # let git find the repo
+git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"  # enable branch fetching
+git worktree add main
+git worktree add feature-auth -b feature/auth
+
+# Manage isolated stacks from main worktree
+cd main
+rft list       # see worktrees with unique ports
+rft start      # start all stacks in parallel
 rft logs 1     # stream logs for worktree #1
-rft promote 1  # copy changes from worktree #1 to current branch
+rft promote 1  # transfer changes to current branch
 rft clean      # stop everything, remove worktrees
 ```
+
+See [Getting Started](/docs/getting-started) for a complete step-by-step walkthrough with detailed explanations.

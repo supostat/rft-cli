@@ -37,6 +37,16 @@ port_offset = 30000
 
 See [Port Allocation](/docs/concepts/port-allocation) for the full formula.
 
+### main_branch
+
+Override the name of the main branch. By default, rft auto-detects `main` or `master`. Set this if your main branch has a different name.
+
+```toml
+main_branch = "develop"
+```
+
+rft excludes the main branch from worktree management — it keeps default ports and is never started/stopped by rft.
+
 ### env_overrides
 
 Environment variable templates injected into each worktree's `.env`. Use `${VAR}` syntax to reference allocated port values.
@@ -58,6 +68,7 @@ The same configuration in `.rftrc.json`:
 {
   "sync": ["nginx/", "scripts/init.sql"],
   "port_offset": 30000,
+  "main_branch": "develop",
   "env_overrides": {
     "API_URL": "http://localhost:${API_PORT}",
     "CORS_ORIGIN": "http://localhost:${FRONTEND_PORT}"
