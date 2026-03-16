@@ -1,0 +1,65 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+Format follows [Keep a Changelog](https://keepachangelog.com/).
+
+## [Unreleased]
+
+## [0.3.0] — 2026-03-16
+
+### Added
+- `rft start --dry-run` — show what would happen without executing (Executor abstraction)
+- `rft watch` — start stacks and auto-restart on compose/Dockerfile changes (notify + 500ms debounce)
+- Graceful shutdown on Ctrl+C for `start` (cleanup partially started stacks) and `stop` (wait for docker compose down to finish)
+- CHANGELOG.md
+
+## [0.2.0] — 2026-03-16
+
+### Added
+- Bare repo support — `git worktree list` skips bare entries, works with `git clone --bare` + worktree workflow
+- `main_branch` config option — override default main/master detection (for repos using develop/trunk)
+- Path traversal validation in file sync and promote (`validate_path_within`)
+- Getting started guide with bare repo walkthrough
+- 4 new command doc pages: restart, status, completions, mcp
+- `meta.json` for sidebar ordering in documentation website
+
+### Fixed
+- Port conflict detection moved before parallel start (was inside each task — race condition)
+- `expect()` in `spawn_blocking` replaced with `RftError::TaskPanicked`
+- `get_worktree_by_index` rejects main worktree (index 0)
+- Main branch detected by name (main/master), not by position in worktree list
+- Aggregated error messages for parallel start/stop failures
+- `--dry-run` flag removed from start CLI (was accepted but ignored)
+- Shell prompt example uses `precmd()` instead of static `export PS1`
+- GitHub URL consistency across Cargo.toml, website, README
+- MCP docs removed "Stream logs" from use cases (no `rft_logs` tool)
+- `is_excluded` in promote checks basename for nested paths
+
+### Changed
+- `RftError::Interrupted` variant for Ctrl+C (was `Config`)
+- `RftError::PromoteConflict` variant for promote conflicts (was `Config`)
+
+## [0.1.0] — 2026-03-16
+
+### Added
+- CLI with 10 commands: list, start, stop, restart, clean, logs, promote, status, completions, mcp
+- Docker Compose port isolation for git worktrees
+- Deterministic port allocation: `20000 + default_port + worktree_index`
+- Parallel start/stop via `tokio::JoinSet`
+- File sync: compose, Dockerfiles, extra files, `.env` with port override block
+- Promote: `git checkout` for committed files, file copy for uncommitted/untracked
+- MCP server with 6 tools via `rmcp` stdio transport
+- Port conflict detection via `TcpListener::bind`
+- Shell completions (bash, zsh, fish, powershell)
+- One-line status for shell prompt (`rft status`)
+- Configuration: `.rftrc.toml`, `.rftrc.json`, `package.json#rft`, env vars
+- CI/CD: test on 3 OS, release builds for linux/macos/windows
+- Lefthook: pre-commit (fmt + clippy), pre-push (test)
+- Fumadocs documentation website (22 pages)
+- Example Docker Compose project
+
+[Unreleased]: https://github.com/supostat/rft-cli/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/supostat/rft-cli/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/supostat/rft-cli/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/supostat/rft-cli/releases/tag/v0.1.0
