@@ -1,0 +1,118 @@
+---
+title: Troubleshooting
+description: Common issues and how to fix them
+---
+
+## No compose file found
+
+```
+Error: no compose file found in /path/to/repo
+```
+
+rft looks for compose files in this order: `compose.yaml`, `compose.yml`, `docker-compose.yaml`, `docker-compose.yml`. Make sure one of these exists in your repository root (where `.git` is).
+
+If using a bare repo setup, run rft from the **main worktree directory**, not the parent.
+
+## Ports use raw values (no env vars)
+
+```
+Warning: some ports use raw values without env vars.
+```
+
+rft can only manage ports that use the `${VAR:-default}` format:
+
+```yaml
+# ✗ rft cannot override this
+ports:
+  - "3000:3000"
+
+# ✓ rft manages this
+ports:
+  - "${FRONTEND_PORT:-3000}:3000"
+```
+
+Run `rft init` to see which ports need updating and get suggested variable names.
+
+## Port already in use
+
+```
+warning: port 23001 (web, WEB_PORT) is already in use
+```
+
+Another process is binding to the allocated port. Common causes:
+- A previous `rft start` didn't clean up (run `rft clean`)
+- Another Docker project uses the same port range
+- A local dev server is running on that port
+
+To check what's using a port:
+
+```bash
+# macOS
+lsof -iTCP:23001 -sTCP:LISTEN
+
+# Linux
+ss -tlnp | grep 23001
+```
+
+To use a different port range, set `port_offset` in `.rftrc.toml`:
+
+```toml
+port_offset = 30000
+```
+
+## Worktree not found
+
+```
+Error: worktree index 3 not found
+```
+
+Worktree indices are 1-based and only count non-main worktrees. Run `rft list` to see available indices.
+
+## Command failed: docker compose
+
+```
+Error: command failed: docker compose -p name up -d --build
+```
+
+rft requires Docker Compose v2 (`docker compose`, not `docker-compose`). Check:
+
+```bash
+docker compose version
+# Docker Compose version v2.x.x
+```
+
+If you see "command not found", install the Docker Compose plugin.
+
+## Promote conflicts
+
+```
+Conflict! The following files have local changes that would be overwritten:
+  ! src/main.rs
+```
+
+You have uncommitted changes in your current branch that overlap with files from the worktree. Either:
+- Commit or stash your local changes first
+- Use `--files` to promote only non-conflicting files
+
+## Bare repo: git commands fail
+
+```
+fatal: this operation must be run in a work tree
+```
+
+When using a bare repo setup, always run rft from a **worktree directory** (e.g., `~/projects/myapp/main/`), not the parent directory that contains `.bare/`.
+
+## Watch mode not detecting changes
+
+If `rft watch` doesn't restart on file changes:
+- Check that the compose file path is correct (`rft watch` prints watched paths)
+- Some editors write to temporary files first, then rename — this should work with `notify`
+- The debounce window is 500ms — very rapid saves may be grouped
+
+## MCP server not responding
+
+If Claude Code can't connect to the MCP server:
+
+1. Verify `rft mcp` runs without errors: `rft mcp` (press Ctrl+C to stop)
+2. Check your MCP config points to the correct binary path
+3. The server uses stdio transport — make sure nothing else is reading stdin/stdout
