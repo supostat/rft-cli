@@ -42,7 +42,7 @@ pub async fn build_context_from(cwd: &std::path::Path) -> Result<RftContext> {
     let config = tokio::task::spawn_blocking(move || crate::config::load_config(&repo_root_clone))
         .await
         .map_err(|e| crate::error::RftError::TaskPanicked(e.to_string()))?;
-    let worktrees = crate::git::get_worktrees(&repo_root).await?;
+    let worktrees = crate::git::get_worktrees(&repo_root, config.main_branch.as_deref()).await?;
 
     Ok(RftContext {
         repo_root,

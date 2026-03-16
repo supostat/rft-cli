@@ -34,7 +34,10 @@ pub fn get_repo_name(repo_root: &Path) -> String {
         .unwrap_or_else(|| "unknown".to_string())
 }
 
-pub async fn get_worktrees(repo_root: &Path) -> Result<Vec<WorktreeInfo>> {
+pub async fn get_worktrees(
+    repo_root: &Path,
+    main_branch: Option<&str>,
+) -> Result<Vec<WorktreeInfo>> {
     let output = Command::new("git")
         .args(["worktree", "list", "--porcelain"])
         .current_dir(repo_root)
@@ -50,30 +53,40 @@ pub async fn get_worktrees(repo_root: &Path) -> Result<Vec<WorktreeInfo>> {
     }
 
     let raw = String::from_utf8_lossy(&output.stdout);
-    parse_porcelain_output(&raw)
+    parse_porcelain_output(&raw, main_branch)
 }
 
-pub async fn get_non_main_worktrees(repo_root: &Path) -> Result<Vec<WorktreeInfo>> {
-    let worktrees = get_worktrees(repo_root).await?;
+pub async fn get_non_main_worktrees(
+    repo_root: &Path,
+    main_branch: Option<&str>,
+) -> Result<Vec<WorktreeInfo>> {
+    let worktrees = get_worktrees(repo_root, main_branch).await?;
     Ok(worktrees.into_iter().filter(|wt| !wt.is_main).collect())
 }
 
-pub async fn get_worktree_by_index(repo_root: &Path, index: usize) -> Result<WorktreeInfo> {
-    let worktrees = get_worktrees(repo_root).await?;
+pub async fn get_worktree_by_index(
+    repo_root: &Path,
+    index: usize,
+    main_branch: Option<&str>,
+) -> Result<WorktreeInfo> {
+    let worktrees = get_worktrees(repo_root, main_branch).await?;
     worktrees
         .into_iter()
         .find(|wt| !wt.is_main && wt.index == index)
         .ok_or(RftError::WorktreeNotFound { index })
 }
 
-fn parse_porcelain_output(raw: &str) -> Result<Vec<WorktreeInfo>> {
+const MAIN_BRANCH_NAMES: &[&str] = &["main", "master"];
+
+fn parse_porcelain_output(raw: &str, main_branch: Option<&str>) -> Result<Vec<WorktreeInfo>> {
     let mut worktrees = Vec::new();
     let blocks = raw.split("\n\n").filter(|block| !block.trim().is_empty());
     let mut non_main_counter = 0usize;
 
-    for (position, block) in blocks.enumerate() {
+    for block in blocks {
         let mut path: Option<PathBuf> = None;
         let mut branch = String::from("detached");
+        let mut is_bare = false;
 
         for line in block.lines() {
             if let Some(worktree_path) = line.strip_prefix("worktree ") {
@@ -83,10 +96,19 @@ fn parse_porcelain_output(raw: &str) -> Result<Vec<WorktreeInfo>> {
                     .strip_prefix("refs/heads/")
                     .unwrap_or(branch_ref)
                     .to_string();
+            } else if line.trim() == "bare" {
+                is_bare = true;
             }
         }
 
-        let is_main = position == 0;
+        if is_bare {
+            continue;
+        }
+
+        let is_main = match main_branch {
+            Some(name) => branch == name,
+            None => MAIN_BRANCH_NAMES.contains(&branch.as_str()),
+        };
 
         if let Some(path) = path {
             let index = if is_main {
@@ -138,9 +160,32 @@ HEAD abc123def456
 branch refs/heads/main
 ";
 
+    const PORCELAIN_BARE_REPO: &str = "\
+worktree /home/user/project/.bare
+bare
+
+worktree /home/user/project/main
+HEAD abc123def456
+branch refs/heads/main
+
+worktree /home/user/project/feature-auth
+HEAD 789def012abc
+branch refs/heads/feature/auth
+";
+
+    const PORCELAIN_MASTER_BRANCH: &str = "\
+worktree /home/user/project
+HEAD abc123def456
+branch refs/heads/master
+
+worktree /home/user/project-feature
+HEAD 789def012abc
+branch refs/heads/feature/login
+";
+
     #[test]
     fn parse_two_worktrees() {
-        let worktrees = parse_porcelain_output(PORCELAIN_TWO_WORKTREES).unwrap();
+        let worktrees = parse_porcelain_output(PORCELAIN_TWO_WORKTREES, None).unwrap();
 
         assert_eq!(worktrees.len(), 2);
 
@@ -163,7 +208,7 @@ branch refs/heads/main
 
     #[test]
     fn parse_detached_head() {
-        let worktrees = parse_porcelain_output(PORCELAIN_WITH_DETACHED).unwrap();
+        let worktrees = parse_porcelain_output(PORCELAIN_WITH_DETACHED, None).unwrap();
 
         assert_eq!(worktrees.len(), 2);
         assert_eq!(worktrees[1].branch, "detached");
@@ -176,7 +221,7 @@ branch refs/heads/main
 
     #[test]
     fn parse_single_worktree() {
-        let worktrees = parse_porcelain_output(PORCELAIN_SINGLE).unwrap();
+        let worktrees = parse_porcelain_output(PORCELAIN_SINGLE, None).unwrap();
 
         assert_eq!(worktrees.len(), 1);
         assert!(worktrees[0].is_main);
@@ -185,8 +230,65 @@ branch refs/heads/main
 
     #[test]
     fn parse_empty_output() {
-        let worktrees = parse_porcelain_output("").unwrap();
+        let worktrees = parse_porcelain_output("", None).unwrap();
         assert!(worktrees.is_empty());
+    }
+
+    #[test]
+    fn parse_bare_repo_skips_bare_entry() {
+        let worktrees = parse_porcelain_output(PORCELAIN_BARE_REPO, None).unwrap();
+
+        assert_eq!(worktrees.len(), 2, "bare entry should be skipped");
+        assert_eq!(worktrees[0].branch, "main");
+        assert!(worktrees[0].is_main);
+        assert_eq!(worktrees[0].index, 0);
+
+        assert_eq!(worktrees[1].branch, "feature/auth");
+        assert!(!worktrees[1].is_main);
+        assert_eq!(worktrees[1].index, 1);
+    }
+
+    #[test]
+    fn parse_master_branch_is_main() {
+        let worktrees = parse_porcelain_output(PORCELAIN_MASTER_BRANCH, None).unwrap();
+
+        assert_eq!(worktrees.len(), 2);
+        assert!(worktrees[0].is_main, "master should be detected as main");
+        assert_eq!(worktrees[0].index, 0);
+        assert!(!worktrees[1].is_main);
+        assert_eq!(worktrees[1].index, 1);
+    }
+
+    #[test]
+    fn custom_main_branch_from_config() {
+        let porcelain = "\
+worktree /home/user/project
+HEAD abc123def456
+branch refs/heads/develop
+
+worktree /home/user/project-feature
+HEAD 789def012abc
+branch refs/heads/feature/login
+";
+        let worktrees = parse_porcelain_output(porcelain, Some("develop")).unwrap();
+
+        assert_eq!(worktrees.len(), 2);
+        assert!(
+            worktrees[0].is_main,
+            "develop should be main when configured"
+        );
+        assert_eq!(worktrees[0].index, 0);
+        assert!(!worktrees[1].is_main);
+    }
+
+    #[test]
+    fn custom_main_branch_does_not_match_default() {
+        let worktrees = parse_porcelain_output(PORCELAIN_TWO_WORKTREES, Some("develop")).unwrap();
+
+        assert!(
+            !worktrees[0].is_main,
+            "main branch should not match when config says develop"
+        );
     }
 
     #[test]

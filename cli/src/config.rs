@@ -8,6 +8,7 @@ pub struct RftConfig {
     pub sync: Vec<String>,
     pub env_overrides: HashMap<String, String>,
     pub port_offset: Option<u32>,
+    pub main_branch: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -15,6 +16,7 @@ struct ConfigFile {
     sync: Option<Vec<String>>,
     env_overrides: Option<HashMap<String, String>>,
     port_offset: Option<u32>,
+    main_branch: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -28,6 +30,7 @@ impl From<ConfigFile> for RftConfig {
             sync: file.sync.unwrap_or_default(),
             env_overrides: file.env_overrides.unwrap_or_default(),
             port_offset: file.port_offset,
+            main_branch: file.main_branch,
         }
     }
 }

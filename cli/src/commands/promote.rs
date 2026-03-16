@@ -18,7 +18,12 @@ async fn run_inner(
     file_filter: Option<&str>,
 ) -> crate::error::Result<()> {
     let context = build_context().await?;
-    let worktree = get_worktree_by_index(&context.repo_root, index).await?;
+    let worktree = get_worktree_by_index(
+        &context.repo_root,
+        index,
+        context.config.main_branch.as_deref(),
+    )
+    .await?;
 
     let current_branch_output = tokio::process::Command::new("git")
         .args(["rev-parse", "--abbrev-ref", "HEAD"])

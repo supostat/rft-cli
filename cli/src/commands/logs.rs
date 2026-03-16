@@ -7,7 +7,12 @@ use crate::sanitize::compose_project_name;
 
 pub async fn run(index: usize, service: Option<String>, no_follow: bool) -> Result<()> {
     let context = build_context().await?;
-    let worktree = get_worktree_by_index(&context.repo_root, index).await?;
+    let worktree = get_worktree_by_index(
+        &context.repo_root,
+        index,
+        context.config.main_branch.as_deref(),
+    )
+    .await?;
     let project_name = compose_project_name(&context.repo_name, worktree.index, &worktree.branch);
 
     let mut args = vec![
