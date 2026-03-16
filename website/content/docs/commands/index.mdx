@@ -7,16 +7,18 @@ description: Overview of all rft commands
 
 | Command | Description |
 |---------|-------------|
+| [`rft init`](/docs/commands/init) | Analyze compose file, suggest port fixes, generate config |
 | [`rft list`](/docs/commands/list) | Show all worktrees with ports and container status |
-| [`rft start`](/docs/commands/start) | Start Docker Compose stacks in parallel |
+| [`rft start`](/docs/commands/start) | Start Docker Compose stacks in parallel. `--dry-run` to preview |
 | [`rft stop`](/docs/commands/stop) | Stop running stacks |
-| [`rft logs`](/docs/commands/logs) | Stream container logs |
-| [`rft promote`](/docs/commands/promote) | Transfer changes to current branch |
+| [`rft restart`](/docs/commands/restart) | Restart stacks (stop + start) |
+| [`rft watch`](/docs/commands/watch) | Start stacks and auto-restart on file changes |
+| [`rft logs`](/docs/commands/logs) | Stream container logs. `--no-follow` for snapshot |
+| [`rft promote`](/docs/commands/promote) | Transfer changes to current branch. `--dry-run` to preview |
 | [`rft clean`](/docs/commands/clean) | Full cleanup: stop, remove worktrees, prune Docker |
-| `rft restart [indices...]` | Restart stacks (equivalent to stop + start) |
-| `rft status` | One-line status for shell prompt integration |
-| `rft completions <shell>` | Generate shell completions (bash/zsh/fish) |
-| `rft mcp` | Start MCP server for AI agent integration |
+| [`rft status`](/docs/commands/status) | One-line status for shell prompt integration |
+| [`rft completions`](/docs/commands/completions) | Generate shell completions (bash/zsh/fish) |
+| [`rft mcp`](/docs/commands/mcp) | Start MCP server for AI agent integration |
 
 ## Index-Based Selection
 

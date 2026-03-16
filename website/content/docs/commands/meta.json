@@ -1,10 +1,12 @@
 {
   "pages": [
     "index",
+    "init",
     "list",
     "start",
     "stop",
     "restart",
+    "watch",
     "logs",
     "promote",
     "clean",

@@ -25,6 +25,10 @@ Each stack runs with a unique project name derived from the worktree, preventing
 4. Any files listed in `sync` configuration are copied
 5. `docker compose up -d` runs with a unique project name
 
+## Flags
+
+- `--dry-run` — show what would be done (files copied, ports allocated, docker commands) without executing anything
+
 ## Examples
 
 ```bash
@@ -34,8 +38,8 @@ rft start
 # Start only worktrees 1 and 3
 rft start 1 3
 
-# Start a single worktree
-rft start 2
+# Preview without executing
+rft start --dry-run
 ```
 
 ## Port Allocation

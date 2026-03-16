@@ -1,0 +1,57 @@
+---
+title: rft watch
+description: Start stacks and auto-restart on file changes
+---
+
+## Usage
+
+```bash
+rft watch [indices...]
+```
+
+Starts Docker Compose stacks and watches for changes to the compose file and Dockerfile directories. When a change is detected, affected stacks are automatically restarted.
+
+## How It Works
+
+1. Runs `rft start` to launch all stacks
+2. Watches the compose file and Dockerfile parent directories using filesystem events
+3. On any change (create, modify, delete), waits 500ms for additional changes (debounce)
+4. Runs `rft restart` to apply changes
+5. Repeats until you press Ctrl+C
+
+## Arguments
+
+- **indices** (optional) — worktree indices to watch. All if omitted.
+
+## Examples
+
+```bash
+# Watch all worktrees
+rft watch
+
+# Watch only worktree 1
+rft watch 1
+```
+
+## Output
+
+```
+Watch Starting stacks and watching for changes...
+Starting [1] feature/auth (myapp-rft-1-feature-auth)
+Started [1] feature/auth
+
+Watch Watching 3 path(s) for changes. Press Ctrl+C to stop.
+  → /Users/you/projects/myapp/main/docker-compose.yml
+  → /Users/you/projects/myapp/main/frontend
+  → /Users/you/projects/myapp/main/backend
+
+Watch File change detected, restarting stacks...
+```
+
+## Stopping
+
+Press Ctrl+C to stop watching. rft will run `rft stop` to shut down all watched stacks before exiting.
+
+## Debounce
+
+Changes within 500ms are grouped into a single restart. This prevents multiple restarts when saving files rapidly or when editors write temporary files.

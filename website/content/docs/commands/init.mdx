@@ -1,0 +1,45 @@
+---
+title: rft init
+description: Analyze compose file and generate configuration
+---
+
+## Usage
+
+```bash
+rft init
+```
+
+Analyzes your Docker Compose file, checks port format, and generates a `.rftrc.toml` configuration file.
+
+## What It Does
+
+1. Finds `docker-compose.yml` (or `compose.yaml`) in the repo root
+2. Parses all services and port mappings
+3. Reports which ports use `${VAR:-default}` format (managed by rft)
+4. For hardcoded ports, suggests the correct env var format
+5. Creates `.rftrc.toml` if it doesn't exist
+
+## Example Output
+
+```
+Initializing rft for myapp (/Users/you/projects/myapp)
+  ✓ Found docker-compose.yml
+  ✓ 3 service(s), 3 port mapping(s)
+  ✓ 2 port(s) using ${VAR:-default} format (managed by rft)
+
+The following ports use hardcoded values. rft cannot override them:
+  → database port 5432:5432 → change to ${DATABASE_PORT_5432:-5432}:5432
+
+  ✓ Created .rftrc.toml
+
+Ready! Run rft list to see your worktrees.
+```
+
+## When to Use
+
+Run `rft init` after:
+- Setting up a new project with Docker Compose
+- Adding rft to an existing project
+- Changing port mappings in your compose file
+
+It's safe to run multiple times — it won't overwrite an existing `.rftrc.toml`.

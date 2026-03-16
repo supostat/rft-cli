@@ -1,5 +1,9 @@
 # rft
 
+[![Crates.io](https://img.shields.io/crates/v/rft-cli)](https://crates.io/crates/rft-cli)
+[![CI](https://github.com/supostat/rft-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/supostat/rft-cli/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Zero-config Docker Compose isolation for git worktrees.
 
 When you work on multiple branches simultaneously using `git worktree`, each worktree needs its own Docker Compose stack with unique ports. **rft** automates this — it detects your compose file, allocates non-conflicting ports, and manages the stacks.
@@ -111,12 +115,14 @@ Main branch keeps default ports (`3000`, `8080`) — rft doesn't touch it.
 
 | Command | Description |
 |---------|-------------|
+| `rft init` | Analyze compose file, suggest port fixes, generate `.rftrc.toml` |
 | `rft list` | Show all worktrees with ports and container status |
-| `rft start [indices...]` | Start stacks (parallel) |
+| `rft start [indices...]` | Start stacks (parallel). `--dry-run` to preview |
 | `rft stop [indices...]` | Stop stacks (parallel) |
 | `rft restart [indices...]` | Restart stacks |
-| `rft logs <index> [service]` | Stream container logs |
-| `rft promote <index>` | Transfer changes to current branch |
+| `rft watch [indices...]` | Start stacks and auto-restart on file changes |
+| `rft logs <index> [service]` | Stream container logs. `--no-follow` for snapshot |
+| `rft promote <index>` | Transfer changes to current branch. `--dry-run` to preview |
 | `rft clean` | Full cleanup: stop, remove worktrees, prune Docker |
 | `rft status` | One-line status for shell prompt (`rft: 3/5 up`) |
 | `rft completions <shell>` | Generate shell completions (bash/zsh/fish) |

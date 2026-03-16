@@ -57,3 +57,13 @@ services:
 ```
 
 If you have a mix of hardcoded and variable-based ports, rft will manage only the variable-based ones.
+
+## Check Your Setup
+
+Run `rft init` to analyze your compose file and see which ports are managed:
+
+```bash
+rft init
+```
+
+It will suggest fixes for hardcoded ports and generate a `.rftrc.toml` config file. See [`rft init`](/docs/commands/init) for details.
