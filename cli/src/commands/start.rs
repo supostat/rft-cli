@@ -10,6 +10,7 @@ use crate::context::{build_context, filter_worktrees};
 use crate::error::{Result, RftError};
 use crate::git::WorktreeInfo;
 use crate::ports::{PortMapping, allocate_worktree_ports, BASE_OFFSET};
+use crate::ports::check::check_ports;
 use crate::sanitize::compose_project_name;
 use crate::sync::{env, files};
 
@@ -110,6 +111,18 @@ async fn start_single_worktree(params: WorktreeStartParams) -> Result<()> {
 
     let env_path = env::copy_base_env(&params.repo_root, &params.worktree.path).await?;
     env::inject_port_overrides(&env_path, &allocations, &params.env_overrides).await?;
+
+    let conflicts = check_ports(&allocations);
+    for conflict in &conflicts {
+        eprintln!(
+            "{}",
+            format!(
+                "warning: port {} ({}, {}) is already in use",
+                conflict.port, conflict.service_name, conflict.env_var
+            )
+            .yellow()
+        );
+    }
 
     let output = tokio::process::Command::new("docker")
         .args([

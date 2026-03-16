@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 use miette::Result;
 
 mod commands;
@@ -7,6 +7,7 @@ mod config;
 mod context;
 mod error;
 mod git;
+mod mcp;
 mod ports;
 mod sanitize;
 mod sync;
@@ -24,6 +25,9 @@ enum Command {
     Start {
         /// Worktree indices to start (1-indexed, all if omitted)
         indices: Vec<usize>,
+        /// Show what would be done without executing
+        #[arg(long)]
+        dry_run: bool,
     },
     /// Stop Docker Compose stacks
     Stop {
@@ -60,6 +64,13 @@ enum Command {
         #[arg(long)]
         no_follow: bool,
     },
+    /// One-line status for shell prompt integration
+    Status,
+    /// Generate shell completions
+    Completions {
+        /// Shell to generate completions for
+        shell: clap_complete::Shell,
+    },
     /// Start MCP server (stdio transport)
     Mcp,
 }
@@ -71,14 +82,28 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Command::List => commands::list::run().await,
-        Command::Start { indices } => commands::start::run(indices).await.map_err(Into::into),
+        Command::Start { indices, dry_run: _ } => {
+            commands::start::run(indices).await.map_err(Into::into)
+        }
         Command::Stop { indices } => commands::stop::run(indices).await.map_err(Into::into),
         Command::Restart { indices } => commands::restart::run(indices).await.map_err(Into::into),
         Command::Promote { index, dry_run, files } => {
             commands::promote::run(index, dry_run, files.as_deref()).await
         }
         Command::Clean => commands::clean::run().await.map_err(Into::into),
-        Command::Logs { .. } => todo!(),
-        Command::Mcp => todo!(),
+        Command::Logs {
+            index,
+            service,
+            no_follow,
+        } => commands::logs::run(index, service, no_follow)
+            .await
+            .map_err(Into::into),
+        Command::Status => commands::status::run().await.map_err(Into::into),
+        Command::Completions { shell } => {
+            let mut cmd = Cli::command();
+            clap_complete::generate(shell, &mut cmd, "rft", &mut std::io::stdout());
+            Ok(())
+        }
+        Command::Mcp => mcp::server::run_mcp_server().await.map_err(Into::into),
     }
 }
