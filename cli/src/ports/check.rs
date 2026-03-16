@@ -22,15 +22,13 @@ pub fn check_port_available(port: u16) -> std::io::Result<bool> {
 pub fn check_ports(allocations: &[PortAllocation]) -> Vec<PortConflict> {
     allocations
         .iter()
-        .filter_map(|allocation| {
-            match check_port_available(allocation.port) {
-                Ok(true) => None,
-                _ => Some(PortConflict {
-                    port: allocation.port,
-                    service_name: allocation.service_name.clone(),
-                    env_var: allocation.env_var.clone(),
-                }),
-            }
+        .filter_map(|allocation| match check_port_available(allocation.port) {
+            Ok(true) => None,
+            _ => Some(PortConflict {
+                port: allocation.port,
+                service_name: allocation.service_name.clone(),
+                env_var: allocation.env_var.clone(),
+            }),
         })
         .collect()
 }

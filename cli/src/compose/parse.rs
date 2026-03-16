@@ -68,10 +68,7 @@ fn extract_ports(service: &Value) -> Vec<String> {
         return Vec::new();
     };
 
-    ports_seq
-        .iter()
-        .filter_map(port_entry_to_string)
-        .collect()
+    ports_seq.iter().filter_map(port_entry_to_string).collect()
 }
 
 fn port_entry_to_string(entry: &Value) -> Option<String> {
@@ -163,7 +160,10 @@ services:
         let compose = parse_compose_file(&path).unwrap();
         assert_eq!(compose.services.len(), 1);
         assert_eq!(compose.services[0].name, "frontend");
-        assert_eq!(compose.services[0].ports, vec!["${FRONTEND_PORT:-3000}:3000"]);
+        assert_eq!(
+            compose.services[0].ports,
+            vec!["${FRONTEND_PORT:-3000}:3000"]
+        );
     }
 
     #[test]

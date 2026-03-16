@@ -12,23 +12,21 @@ pub struct PortMapping {
 }
 
 pub fn extract_port_mappings(services: &[ComposeService]) -> Vec<PortMapping> {
-    let env_var_pattern =
-        Regex::new(r"^\$\{([A-Z_][A-Z0-9_]*):-(\d+)\}$").expect("valid regex");
+    let env_var_pattern = Regex::new(r"^\$\{([A-Z_][A-Z0-9_]*):-(\d+)\}$").expect("valid regex");
 
     services
         .iter()
         .flat_map(|service| {
-            service.ports.iter().filter_map(|raw| {
-                parse_port_string(raw, &service.name, &env_var_pattern)
-            })
+            service
+                .ports
+                .iter()
+                .filter_map(|raw| parse_port_string(raw, &service.name, &env_var_pattern))
         })
         .collect()
 }
 
 pub fn suggest_env_var(service_name: &str, port: u16) -> String {
-    let normalized = service_name
-        .replace(['-', '.'], "_")
-        .to_uppercase();
+    let normalized = service_name.replace(['-', '.'], "_").to_uppercase();
 
     format!("{normalized}_PORT_{port}")
 }

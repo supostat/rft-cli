@@ -25,10 +25,11 @@ pub async fn build_context_from(cwd: &std::path::Path) -> Result<RftContext> {
     let repo_root = crate::git::get_repo_root(cwd).await?;
     let repo_name = crate::git::get_repo_name(&repo_root);
 
-    let compose_path = crate::compose::detect_compose_file(&repo_root)
-        .ok_or_else(|| crate::error::RftError::ComposeNotFound {
+    let compose_path = crate::compose::detect_compose_file(&repo_root).ok_or_else(|| {
+        crate::error::RftError::ComposeNotFound {
             path: repo_root.clone(),
-        })?;
+        }
+    })?;
     let compose_path_clone = compose_path.clone();
     let compose_file = tokio::task::spawn_blocking(move || {
         crate::compose::parse_compose_file(&compose_path_clone)
@@ -38,11 +39,9 @@ pub async fn build_context_from(cwd: &std::path::Path) -> Result<RftContext> {
 
     let port_mappings = crate::ports::extract_port_mappings(&compose_file.services);
     let repo_root_clone = repo_root.clone();
-    let config = tokio::task::spawn_blocking(move || {
-        crate::config::load_config(&repo_root_clone)
-    })
-    .await
-    .expect("config load task panicked");
+    let config = tokio::task::spawn_blocking(move || crate::config::load_config(&repo_root_clone))
+        .await
+        .expect("config load task panicked");
     let worktrees = crate::git::get_worktrees(&repo_root).await?;
 
     Ok(RftContext {

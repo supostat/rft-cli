@@ -87,7 +87,10 @@ fn load_package_json(repo_root: &Path) -> Option<RftConfig> {
     }
 }
 
-fn apply_env_overrides(config: &mut RftConfig, env_var: impl Fn(&str) -> std::result::Result<String, std::env::VarError>) {
+fn apply_env_overrides(
+    config: &mut RftConfig,
+    env_var: impl Fn(&str) -> std::result::Result<String, std::env::VarError>,
+) {
     if let Ok(value) = env_var("RFT_PORT_OFFSET") {
         match value.parse::<u32>() {
             Ok(offset) => config.port_offset = Some(offset),
@@ -178,16 +181,8 @@ DATABASE_URL = "postgres://localhost/test"
     #[test]
     fn toml_takes_priority_over_json() {
         let dir = tempfile::tempdir().unwrap();
-        fs::write(
-            dir.path().join(".rftrc.toml"),
-            r#"port_offset = 10"#,
-        )
-        .unwrap();
-        fs::write(
-            dir.path().join(".rftrc.json"),
-            r#"{"port_offset": 20}"#,
-        )
-        .unwrap();
+        fs::write(dir.path().join(".rftrc.toml"), r#"port_offset = 10"#).unwrap();
+        fs::write(dir.path().join(".rftrc.json"), r#"{"port_offset": 20}"#).unwrap();
 
         let config = load_from_files(dir.path());
 
@@ -215,16 +210,14 @@ DATABASE_URL = "postgres://localhost/test"
         assert_eq!(config.port_offset, None);
     }
 
-    fn fake_env(overrides: &[(&str, &str)]) -> impl Fn(&str) -> std::result::Result<String, std::env::VarError> {
+    fn fake_env(
+        overrides: &[(&str, &str)],
+    ) -> impl Fn(&str) -> std::result::Result<String, std::env::VarError> {
         let map: HashMap<String, String> = overrides
             .iter()
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
-        move |key: &str| {
-            map.get(key)
-                .cloned()
-                .ok_or(std::env::VarError::NotPresent)
-        }
+        move |key: &str| map.get(key).cloned().ok_or(std::env::VarError::NotPresent)
     }
 
     #[test]

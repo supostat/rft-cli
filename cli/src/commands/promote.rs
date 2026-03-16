@@ -1,11 +1,10 @@
 use owo_colors::OwoColorize;
 
 use crate::context::build_context;
-use crate::git::promote::{
-    ChangeSource, find_conflicts, get_changed_files, get_local_dirty_files,
-    promote_files,
-};
 use crate::git::get_worktree_by_index;
+use crate::git::promote::{
+    ChangeSource, find_conflicts, get_changed_files, get_local_dirty_files, promote_files,
+};
 
 pub async fn run(index: usize, dry_run: bool, file_filter: Option<&str>) -> miette::Result<()> {
     run_inner(index, dry_run, file_filter)
@@ -38,12 +37,8 @@ async fn run_inner(
         .trim()
         .to_string();
 
-    let mut changed_files = get_changed_files(
-        &worktree.path,
-        &worktree.branch,
-        &main_branch,
-    )
-    .await?;
+    let mut changed_files =
+        get_changed_files(&worktree.path, &worktree.branch, &main_branch).await?;
 
     if let Some(pattern) = file_filter {
         changed_files.retain(|file| glob_matches(pattern, &file.path));
@@ -85,11 +80,7 @@ async fn run_inner(
             };
             println!("  {} {} ({})", "+".green(), file.path, source_label);
         }
-        println!(
-            "\n{} {} file(s)",
-            "Total:".bold(),
-            changed_files.len()
-        );
+        println!("\n{} {} file(s)", "Total:".bold(), changed_files.len());
         return Ok(());
     }
 

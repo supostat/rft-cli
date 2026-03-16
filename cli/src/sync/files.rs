@@ -4,10 +4,7 @@ use crate::compose::ComposeFile;
 use crate::error::Result;
 
 pub fn extract_dockerfile_paths(compose_file: &ComposeFile) -> Vec<PathBuf> {
-    let compose_dir = compose_file
-        .compose_path
-        .parent()
-        .unwrap_or(Path::new("."));
+    let compose_dir = compose_file.compose_path.parent().unwrap_or(Path::new("."));
 
     compose_file
         .services
@@ -174,12 +171,11 @@ mod tests {
         let worktree = tempfile::tempdir().unwrap();
 
         let compose_path = repo.path().join("compose.yaml");
-        tokio::fs::write(&compose_path, "services: {}").await.unwrap();
+        tokio::fs::write(&compose_path, "services: {}")
+            .await
+            .unwrap();
 
-        let compose_file = make_compose_file(
-            compose_path,
-            vec![],
-        );
+        let compose_file = make_compose_file(compose_path, vec![]);
 
         sync_worktree_files(repo.path(), worktree.path(), &compose_file, &[])
             .await
@@ -199,13 +195,19 @@ mod tests {
         let worktree = tempfile::tempdir().unwrap();
 
         let compose_path = repo.path().join("compose.yaml");
-        tokio::fs::write(&compose_path, "services: {}").await.unwrap();
+        tokio::fs::write(&compose_path, "services: {}")
+            .await
+            .unwrap();
 
-        tokio::fs::write(repo.path().join("Makefile"), "all: build").await.unwrap();
+        tokio::fs::write(repo.path().join("Makefile"), "all: build")
+            .await
+            .unwrap();
 
         let subdir = repo.path().join("config");
         tokio::fs::create_dir_all(&subdir).await.unwrap();
-        tokio::fs::write(subdir.join("settings.toml"), "[app]").await.unwrap();
+        tokio::fs::write(subdir.join("settings.toml"), "[app]")
+            .await
+            .unwrap();
 
         let compose_file = make_compose_file(compose_path, vec![]);
 
@@ -224,13 +226,14 @@ mod tests {
         let worktree = tempfile::tempdir().unwrap();
 
         let compose_path = repo.path().join("compose.yaml");
-        tokio::fs::write(&compose_path, "services: {}").await.unwrap();
+        tokio::fs::write(&compose_path, "services: {}")
+            .await
+            .unwrap();
 
         let compose_file = make_compose_file(compose_path, vec![]);
 
         let extra = vec!["nonexistent.txt".to_string()];
-        let result =
-            sync_worktree_files(repo.path(), worktree.path(), &compose_file, &extra).await;
+        let result = sync_worktree_files(repo.path(), worktree.path(), &compose_file, &extra).await;
         assert!(result.is_ok());
     }
 }

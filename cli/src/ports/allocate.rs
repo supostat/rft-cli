@@ -13,11 +13,7 @@ pub struct PortAllocation {
     pub container_port: u16,
 }
 
-pub fn allocate_port(
-    default_port: u16,
-    worktree_index: usize,
-    base_offset: u32,
-) -> Result<u16> {
+pub fn allocate_port(default_port: u16, worktree_index: usize, base_offset: u32) -> Result<u16> {
     let candidate = base_offset + default_port as u32 + worktree_index as u32;
 
     if candidate <= 65535 {

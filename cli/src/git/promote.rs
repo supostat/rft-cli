@@ -81,25 +81,18 @@ pub async fn get_changed_files(
     worktree_branch: &str,
     main_branch: &str,
 ) -> Result<Vec<ChangedFile>> {
-    let merge_base_output = run_git_command(
-        worktree_path,
-        &["merge-base", main_branch, worktree_branch],
-    )
-    .await?;
-    let merge_base = String::from_utf8_lossy(&merge_base_output).trim().to_string();
+    let merge_base_output =
+        run_git_command(worktree_path, &["merge-base", main_branch, worktree_branch]).await?;
+    let merge_base = String::from_utf8_lossy(&merge_base_output)
+        .trim()
+        .to_string();
 
-    let committed_output = run_git_command(
-        worktree_path,
-        &["diff", "--name-only", &merge_base, "HEAD"],
-    )
-    .await?;
+    let committed_output =
+        run_git_command(worktree_path, &["diff", "--name-only", &merge_base, "HEAD"]).await?;
     let committed_files = parse_file_list(&committed_output);
 
-    let uncommitted_output = run_git_command(
-        worktree_path,
-        &["diff", "--name-only", "HEAD"],
-    )
-    .await?;
+    let uncommitted_output =
+        run_git_command(worktree_path, &["diff", "--name-only", "HEAD"]).await?;
     let uncommitted_files = parse_file_list(&uncommitted_output);
 
     let untracked_output = run_git_command(
@@ -235,9 +228,18 @@ mod tests {
     #[test]
     fn find_conflicts_detects_overlapping_files() {
         let changed = vec![
-            ChangedFile { path: "src/main.rs".to_string(), source: ChangeSource::Committed },
-            ChangedFile { path: "src/lib.rs".to_string(), source: ChangeSource::Uncommitted },
-            ChangedFile { path: "README.md".to_string(), source: ChangeSource::Untracked },
+            ChangedFile {
+                path: "src/main.rs".to_string(),
+                source: ChangeSource::Committed,
+            },
+            ChangedFile {
+                path: "src/lib.rs".to_string(),
+                source: ChangeSource::Uncommitted,
+            },
+            ChangedFile {
+                path: "README.md".to_string(),
+                source: ChangeSource::Untracked,
+            },
         ];
         let dirty = vec!["src/lib.rs".to_string(), "Cargo.toml".to_string()];
 
@@ -248,9 +250,10 @@ mod tests {
 
     #[test]
     fn find_conflicts_returns_empty_when_no_overlap() {
-        let changed = vec![
-            ChangedFile { path: "src/main.rs".to_string(), source: ChangeSource::Committed },
-        ];
+        let changed = vec![ChangedFile {
+            path: "src/main.rs".to_string(),
+            source: ChangeSource::Committed,
+        }];
         let dirty = vec!["Cargo.toml".to_string()];
 
         let conflicts = find_conflicts(&changed, &dirty);
@@ -263,9 +266,10 @@ mod tests {
         assert!(find_conflicts(&[], &[]).is_empty());
         assert!(find_conflicts(&[], &["a.rs".to_string()]).is_empty());
 
-        let changed = vec![
-            ChangedFile { path: "a.rs".to_string(), source: ChangeSource::Committed },
-        ];
+        let changed = vec![ChangedFile {
+            path: "a.rs".to_string(),
+            source: ChangeSource::Committed,
+        }];
         assert!(find_conflicts(&changed, &[]).is_empty());
     }
 
@@ -299,10 +303,16 @@ mod tests {
         let shared = result.iter().find(|f| f.path == "shared.rs").unwrap();
         assert_eq!(shared.source, ChangeSource::Committed);
 
-        let uncommitted_only = result.iter().find(|f| f.path == "only_uncommitted.rs").unwrap();
+        let uncommitted_only = result
+            .iter()
+            .find(|f| f.path == "only_uncommitted.rs")
+            .unwrap();
         assert_eq!(uncommitted_only.source, ChangeSource::Uncommitted);
 
-        let untracked_only = result.iter().find(|f| f.path == "only_untracked.rs").unwrap();
+        let untracked_only = result
+            .iter()
+            .find(|f| f.path == "only_untracked.rs")
+            .unwrap();
         assert_eq!(untracked_only.source, ChangeSource::Untracked);
     }
 
@@ -322,14 +332,8 @@ mod tests {
     fn parse_file_list_handles_various_formats() {
         assert!(parse_file_list(b"").is_empty());
         assert_eq!(parse_file_list(b"file.rs\n"), vec!["file.rs"]);
-        assert_eq!(
-            parse_file_list(b"a.rs\nb.rs\n"),
-            vec!["a.rs", "b.rs"]
-        );
-        assert_eq!(
-            parse_file_list(b"  spaced.rs  \n"),
-            vec!["spaced.rs"]
-        );
+        assert_eq!(parse_file_list(b"a.rs\nb.rs\n"), vec!["a.rs", "b.rs"]);
+        assert_eq!(parse_file_list(b"  spaced.rs  \n"), vec!["spaced.rs"]);
     }
 
     #[test]

@@ -9,8 +9,8 @@ use crate::compose::ComposeFile;
 use crate::context::{build_context, filter_worktrees};
 use crate::error::{Result, RftError};
 use crate::git::WorktreeInfo;
-use crate::ports::{PortMapping, allocate_worktree_ports, BASE_OFFSET};
 use crate::ports::check::check_ports;
+use crate::ports::{BASE_OFFSET, PortMapping, allocate_worktree_ports};
 use crate::sanitize::compose_project_name;
 use crate::sync::{env, files};
 
@@ -125,14 +125,7 @@ async fn start_single_worktree(params: WorktreeStartParams) -> Result<()> {
     }
 
     let output = tokio::process::Command::new("docker")
-        .args([
-            "compose",
-            "-p",
-            &project_name,
-            "up",
-            "-d",
-            "--build",
-        ])
+        .args(["compose", "-p", &project_name, "up", "-d", "--build"])
         .current_dir(&params.worktree.path)
         .output()
         .await?;

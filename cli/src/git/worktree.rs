@@ -155,7 +155,10 @@ branch refs/heads/main
         );
         assert_eq!(worktrees[1].branch, "feature/login");
         assert!(!worktrees[1].is_main);
-        assert_eq!(worktrees[1].index, 1, "first non-main worktree should be 1-indexed");
+        assert_eq!(
+            worktrees[1].index, 1,
+            "first non-main worktree should be 1-indexed"
+        );
     }
 
     #[test]
@@ -165,7 +168,10 @@ branch refs/heads/main
         assert_eq!(worktrees.len(), 2);
         assert_eq!(worktrees[1].branch, "detached");
         assert!(!worktrees[1].is_main);
-        assert_eq!(worktrees[1].index, 1, "detached non-main worktree is 1-indexed");
+        assert_eq!(
+            worktrees[1].index, 1,
+            "detached non-main worktree is 1-indexed"
+        );
     }
 
     #[test]
@@ -185,7 +191,10 @@ branch refs/heads/main
 
     #[test]
     fn repo_name_from_path() {
-        assert_eq!(get_repo_name(Path::new("/home/user/my-project")), "my-project");
+        assert_eq!(
+            get_repo_name(Path::new("/home/user/my-project")),
+            "my-project"
+        );
         assert_eq!(get_repo_name(Path::new("/")), "unknown");
     }
 }

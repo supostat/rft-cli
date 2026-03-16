@@ -223,7 +223,9 @@ EXTRA=value
         let repo = tempfile::tempdir().unwrap();
         let worktree = tempfile::tempdir().unwrap();
 
-        tokio::fs::write(repo.path().join(".env"), "DB=postgres").await.unwrap();
+        tokio::fs::write(repo.path().join(".env"), "DB=postgres")
+            .await
+            .unwrap();
 
         let target = copy_base_env(repo.path(), worktree.path()).await.unwrap();
         assert_eq!(

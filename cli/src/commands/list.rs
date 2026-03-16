@@ -1,9 +1,9 @@
-use comfy_table::{Table, ContentArrangement, presets::UTF8_FULL_CONDENSED};
+use comfy_table::{ContentArrangement, Table, presets::UTF8_FULL_CONDENSED};
 use miette::Result;
 use owo_colors::OwoColorize;
 
 use crate::context::{build_context, filter_worktrees};
-use crate::ports::{PortMapping, PortAllocation, allocate_worktree_ports, BASE_OFFSET};
+use crate::ports::{BASE_OFFSET, PortAllocation, PortMapping, allocate_worktree_ports};
 use crate::sanitize::compose_project_name;
 
 pub async fn run() -> Result<()> {
@@ -23,26 +23,23 @@ pub async fn run_inner() -> crate::error::Result<()> {
     let mut rows = Vec::new();
 
     for worktree in &non_main {
-        let project_name = compose_project_name(
-            &context.repo_name,
-            worktree.index,
-            &worktree.branch,
-        );
-        let ports = match allocate_worktree_ports(
-            &context.port_mappings,
-            worktree.index,
-            base_offset,
-        ) {
-            Ok(ports) => ports,
-            Err(error) => {
-                eprintln!(
-                    "{}",
-                    format!("warning: port allocation failed for worktree {}: {error}", worktree.branch)
+        let project_name =
+            compose_project_name(&context.repo_name, worktree.index, &worktree.branch);
+        let ports =
+            match allocate_worktree_ports(&context.port_mappings, worktree.index, base_offset) {
+                Ok(ports) => ports,
+                Err(error) => {
+                    eprintln!(
+                        "{}",
+                        format!(
+                            "warning: port allocation failed for worktree {}: {error}",
+                            worktree.branch
+                        )
                         .yellow()
-                );
-                Vec::new()
-            }
-        };
+                    );
+                    Vec::new()
+                }
+            };
 
         let status = get_container_status(&project_name).await;
 
@@ -99,16 +96,10 @@ pub async fn list_as_text() -> crate::error::Result<String> {
     let mut rows = Vec::new();
 
     for worktree in &non_main {
-        let project_name = compose_project_name(
-            &context.repo_name,
-            worktree.index,
-            &worktree.branch,
-        );
-        let ports = allocate_worktree_ports(
-            &context.port_mappings,
-            worktree.index,
-            base_offset,
-        ).unwrap_or_default();
+        let project_name =
+            compose_project_name(&context.repo_name, worktree.index, &worktree.branch);
+        let ports = allocate_worktree_ports(&context.port_mappings, worktree.index, base_offset)
+            .unwrap_or_default();
 
         let status = get_container_status(&project_name).await;
 
@@ -126,7 +117,10 @@ pub async fn list_as_text() -> crate::error::Result<String> {
 
 fn render_table_as_text(rows: &[WorktreeRow]) -> String {
     let mut lines = Vec::new();
-    lines.push(format!("{:<4} {:<30} {:<10} {}", "#", "Branch", "Status", "Ports"));
+    lines.push(format!(
+        "{:<4} {:<30} {:<10} {}",
+        "#", "Branch", "Status", "Ports"
+    ));
     lines.push("-".repeat(80));
 
     for row in rows {
@@ -194,7 +188,9 @@ pub fn render_table(rows: &[WorktreeRow], port_mappings: &[PortMapping]) {
 }
 
 pub fn has_raw_port_warnings(port_mappings: &[PortMapping]) -> bool {
-    port_mappings.iter().any(|mapping| mapping.env_var.is_none())
+    port_mappings
+        .iter()
+        .any(|mapping| mapping.env_var.is_none())
 }
 
 pub async fn get_container_status(project_name: &str) -> ContainerStatus {

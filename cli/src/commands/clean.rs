@@ -8,11 +8,7 @@ use crate::sanitize::compose_project_name;
 pub async fn run() -> Result<()> {
     let context = build_context().await?;
 
-    let non_main: Vec<_> = context
-        .worktrees
-        .iter()
-        .filter(|wt| !wt.is_main)
-        .collect();
+    let non_main: Vec<_> = context.worktrees.iter().filter(|wt| !wt.is_main).collect();
 
     if non_main.is_empty() {
         println!("{}", "Nothing to clean.".dimmed());
@@ -147,13 +143,7 @@ async fn remove_docker_resources_by_pattern(pattern: &str) -> Result<()> {
     }
 
     let volumes_output = tokio::process::Command::new("docker")
-        .args([
-            "volume",
-            "ls",
-            "--filter",
-            &format!("name={pattern}"),
-            "-q",
-        ])
+        .args(["volume", "ls", "--filter", &format!("name={pattern}"), "-q"])
         .output()
         .await?;
 

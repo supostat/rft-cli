@@ -13,7 +13,11 @@ mod sanitize;
 mod sync;
 
 #[derive(Parser)]
-#[command(name = "rft", version, about = "Zero-config Docker Compose isolation for git worktrees")]
+#[command(
+    name = "rft",
+    version,
+    about = "Zero-config Docker Compose isolation for git worktrees"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -82,14 +86,17 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Command::List => commands::list::run().await,
-        Command::Start { indices, dry_run: _ } => {
-            commands::start::run(indices).await.map_err(Into::into)
-        }
+        Command::Start {
+            indices,
+            dry_run: _,
+        } => commands::start::run(indices).await.map_err(Into::into),
         Command::Stop { indices } => commands::stop::run(indices).await.map_err(Into::into),
         Command::Restart { indices } => commands::restart::run(indices).await.map_err(Into::into),
-        Command::Promote { index, dry_run, files } => {
-            commands::promote::run(index, dry_run, files.as_deref()).await
-        }
+        Command::Promote {
+            index,
+            dry_run,
+            files,
+        } => commands::promote::run(index, dry_run, files.as_deref()).await,
         Command::Clean => commands::clean::run().await.map_err(Into::into),
         Command::Logs {
             index,

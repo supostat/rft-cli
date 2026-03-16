@@ -1,11 +1,7 @@
 use rmcp::{
-    ErrorData as McpError,
-    ServerHandler,
-    model::*,
-    tool, tool_handler, tool_router,
-    handler::server::tool::ToolRouter,
-    handler::server::wrapper::Parameters,
-    service::ServiceExt,
+    ErrorData as McpError, ServerHandler, handler::server::tool::ToolRouter,
+    handler::server::wrapper::Parameters, model::*, service::ServiceExt, tool, tool_handler,
+    tool_router,
 };
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -37,58 +33,112 @@ impl RftMcpServer {
         }
     }
 
-    #[tool(name = "rft_start", description = "Start Docker Compose stacks for worktrees")]
-    async fn start(&self, Parameters(args): Parameters<IndicesArgs>) -> Result<CallToolResult, McpError> {
+    #[tool(
+        name = "rft_start",
+        description = "Start Docker Compose stacks for worktrees"
+    )]
+    async fn start(
+        &self,
+        Parameters(args): Parameters<IndicesArgs>,
+    ) -> Result<CallToolResult, McpError> {
         let indices = args.indices.unwrap_or_default();
         match crate::commands::start::run(indices).await {
-            Ok(()) => Ok(CallToolResult::success(vec![Content::text("Started successfully")])),
-            Err(error) => Ok(CallToolResult::error(vec![Content::text(error.to_string())])),
+            Ok(()) => Ok(CallToolResult::success(vec![Content::text(
+                "Started successfully",
+            )])),
+            Err(error) => Ok(CallToolResult::error(vec![Content::text(
+                error.to_string(),
+            )])),
         }
     }
 
-    #[tool(name = "rft_stop", description = "Stop Docker Compose stacks for worktrees")]
-    async fn stop(&self, Parameters(args): Parameters<IndicesArgs>) -> Result<CallToolResult, McpError> {
+    #[tool(
+        name = "rft_stop",
+        description = "Stop Docker Compose stacks for worktrees"
+    )]
+    async fn stop(
+        &self,
+        Parameters(args): Parameters<IndicesArgs>,
+    ) -> Result<CallToolResult, McpError> {
         let indices = args.indices.unwrap_or_default();
         match crate::commands::stop::run(indices).await {
-            Ok(()) => Ok(CallToolResult::success(vec![Content::text("Stopped successfully")])),
-            Err(error) => Ok(CallToolResult::error(vec![Content::text(error.to_string())])),
+            Ok(()) => Ok(CallToolResult::success(vec![Content::text(
+                "Stopped successfully",
+            )])),
+            Err(error) => Ok(CallToolResult::error(vec![Content::text(
+                error.to_string(),
+            )])),
         }
     }
 
-    #[tool(name = "rft_restart", description = "Restart Docker Compose stacks for worktrees")]
-    async fn restart(&self, Parameters(args): Parameters<IndicesArgs>) -> Result<CallToolResult, McpError> {
+    #[tool(
+        name = "rft_restart",
+        description = "Restart Docker Compose stacks for worktrees"
+    )]
+    async fn restart(
+        &self,
+        Parameters(args): Parameters<IndicesArgs>,
+    ) -> Result<CallToolResult, McpError> {
         let indices = args.indices.unwrap_or_default();
         match crate::commands::restart::run(indices).await {
-            Ok(()) => Ok(CallToolResult::success(vec![Content::text("Restarted successfully")])),
-            Err(error) => Ok(CallToolResult::error(vec![Content::text(error.to_string())])),
+            Ok(()) => Ok(CallToolResult::success(vec![Content::text(
+                "Restarted successfully",
+            )])),
+            Err(error) => Ok(CallToolResult::error(vec![Content::text(
+                error.to_string(),
+            )])),
         }
     }
 
-    #[tool(name = "rft_list", description = "List all worktrees with ports and status")]
+    #[tool(
+        name = "rft_list",
+        description = "List all worktrees with ports and status"
+    )]
     async fn list(&self) -> Result<CallToolResult, McpError> {
         match crate::commands::list::list_as_text().await {
             Ok(text) => Ok(CallToolResult::success(vec![Content::text(text)])),
-            Err(error) => Ok(CallToolResult::error(vec![Content::text(error.to_string())])),
+            Err(error) => Ok(CallToolResult::error(vec![Content::text(
+                error.to_string(),
+            )])),
         }
     }
 
-    #[tool(name = "rft_promote", description = "Promote changes from a worktree to current branch")]
-    async fn promote(&self, Parameters(args): Parameters<PromoteArgs>) -> Result<CallToolResult, McpError> {
+    #[tool(
+        name = "rft_promote",
+        description = "Promote changes from a worktree to current branch"
+    )]
+    async fn promote(
+        &self,
+        Parameters(args): Parameters<PromoteArgs>,
+    ) -> Result<CallToolResult, McpError> {
         let dry_run = args.dry_run.unwrap_or(false);
         match crate::commands::promote::run(args.index, dry_run, None).await {
             Ok(()) => {
-                let action = if dry_run { "Dry run completed" } else { "Promoted successfully" };
+                let action = if dry_run {
+                    "Dry run completed"
+                } else {
+                    "Promoted successfully"
+                };
                 Ok(CallToolResult::success(vec![Content::text(action)]))
             }
-            Err(error) => Ok(CallToolResult::error(vec![Content::text(error.to_string())])),
+            Err(error) => Ok(CallToolResult::error(vec![Content::text(
+                error.to_string(),
+            )])),
         }
     }
 
-    #[tool(name = "rft_clean", description = "Stop all stacks, remove worktrees, clean up Docker resources")]
+    #[tool(
+        name = "rft_clean",
+        description = "Stop all stacks, remove worktrees, clean up Docker resources"
+    )]
     async fn clean(&self) -> Result<CallToolResult, McpError> {
         match crate::commands::clean::run().await {
-            Ok(()) => Ok(CallToolResult::success(vec![Content::text("Clean completed")])),
-            Err(error) => Ok(CallToolResult::error(vec![Content::text(error.to_string())])),
+            Ok(()) => Ok(CallToolResult::success(vec![Content::text(
+                "Clean completed",
+            )])),
+            Err(error) => Ok(CallToolResult::error(vec![Content::text(
+                error.to_string(),
+            )])),
         }
     }
 }
@@ -107,8 +157,12 @@ pub async fn run_mcp_server() -> crate::error::Result<()> {
     let service = server
         .serve(rmcp::transport::stdio())
         .await
-        .map_err(|error| crate::error::RftError::Config(format!("MCP server failed to start: {error}")))?;
-    service.waiting().await
+        .map_err(|error| {
+            crate::error::RftError::Config(format!("MCP server failed to start: {error}"))
+        })?;
+    service
+        .waiting()
+        .await
         .map_err(|error| crate::error::RftError::Config(format!("MCP server error: {error}")))?;
     Ok(())
 }
@@ -131,9 +185,15 @@ mod tests {
         let names: Vec<String> = tools.iter().map(|t| t.name.to_string()).collect();
         assert!(names.iter().any(|n| n == "rft_start"), "missing rft_start");
         assert!(names.iter().any(|n| n == "rft_stop"), "missing rft_stop");
-        assert!(names.iter().any(|n| n == "rft_restart"), "missing rft_restart");
+        assert!(
+            names.iter().any(|n| n == "rft_restart"),
+            "missing rft_restart"
+        );
         assert!(names.iter().any(|n| n == "rft_list"), "missing rft_list");
-        assert!(names.iter().any(|n| n == "rft_promote"), "missing rft_promote");
+        assert!(
+            names.iter().any(|n| n == "rft_promote"),
+            "missing rft_promote"
+        );
         assert!(names.iter().any(|n| n == "rft_clean"), "missing rft_clean");
     }
 
@@ -154,11 +214,17 @@ mod tests {
     fn promote_tool_has_required_parameters() {
         let server = RftMcpServer::new();
         let tools = server.tool_router.list_all();
-        let promote_tool = tools.iter().find(|t| t.name == "rft_promote").expect("rft_promote not found");
+        let promote_tool = tools
+            .iter()
+            .find(|t| t.name == "rft_promote")
+            .expect("rft_promote not found");
         let schema = promote_tool.input_schema.as_ref();
         let properties = schema.get("properties").expect("no properties in schema");
         assert!(properties.get("index").is_some(), "missing index parameter");
-        assert!(properties.get("dry_run").is_some(), "missing dry_run parameter");
+        assert!(
+            properties.get("dry_run").is_some(),
+            "missing dry_run parameter"
+        );
     }
 
     #[test]
