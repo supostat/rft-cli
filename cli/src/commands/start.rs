@@ -36,6 +36,29 @@ pub async fn run(indices: Vec<usize>) -> Result<()> {
 
     let base_offset = context.config.port_offset.unwrap_or(BASE_OFFSET);
 
+    let mut all_allocations = Vec::new();
+    for worktree in &targets {
+        if let Ok(allocations) =
+            allocate_worktree_ports(&context.port_mappings, worktree.index, base_offset)
+        {
+            all_allocations.extend(allocations);
+        }
+    }
+
+    let conflicts = check_ports(&all_allocations);
+    if !conflicts.is_empty() {
+        for conflict in &conflicts {
+            eprintln!(
+                "{}",
+                format!(
+                    "warning: port {} ({}, {}) is already in use",
+                    conflict.port, conflict.service_name, conflict.env_var
+                )
+                .yellow()
+            );
+        }
+    }
+
     let mut join_set = JoinSet::new();
 
     for worktree in targets {
@@ -114,18 +137,6 @@ async fn start_single_worktree(params: WorktreeStartParams) -> Result<()> {
 
     let env_path = env::copy_base_env(&params.repo_root, &params.worktree.path).await?;
     env::inject_port_overrides(&env_path, &allocations, &params.env_overrides).await?;
-
-    let conflicts = check_ports(&allocations);
-    for conflict in &conflicts {
-        eprintln!(
-            "{}",
-            format!(
-                "warning: port {} ({}, {}) is already in use",
-                conflict.port, conflict.service_name, conflict.env_var
-            )
-            .yellow()
-        );
-    }
 
     let output = tokio::process::Command::new("docker")
         .args(["compose", "-p", &project_name, "up", "-d", "--build"])
