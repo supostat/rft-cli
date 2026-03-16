@@ -4,7 +4,11 @@ version = "0.1.0"
 edition = "2024"
 description = "Zero-config Docker Compose isolation for git worktrees"
 license = "MIT"
-repository = "https://github.com/ingvar/rft"
+repository = "https://github.com/supostat/rft-cli"
+homepage = "https://github.com/supostat/rft-cli"
+readme = "README.md"
+keywords = ["docker", "compose", "worktree", "git", "cli"]
+categories = ["command-line-utilities", "development-tools"]
 
 [[bin]]
 name = "rft"

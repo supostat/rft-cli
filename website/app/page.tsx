@@ -26,7 +26,7 @@ export default function HomePage() {
             Get Started
           </Link>
           <Link
-            href="https://github.com/ingvar/rft"
+            href="https://github.com/supostat/rft-cli"
             className="inline-flex items-center justify-center rounded-lg border border-fd-border px-6 py-3 text-sm font-medium transition-colors hover:bg-fd-accent"
           >
             View on GitHub
