@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 use crate::compose::ComposeFile;
 use crate::error::Result;
+use crate::executor::Executor;
 
 pub fn extract_dockerfile_paths(compose_file: &ComposeFile) -> Vec<PathBuf> {
     let compose_dir = compose_file.compose_path.parent().unwrap_or(Path::new("."));
@@ -23,13 +24,16 @@ pub async fn sync_worktree_files(
     worktree_path: &Path,
     compose_file: &ComposeFile,
     extra_sync: &[String],
+    executor: &Executor,
 ) -> Result<()> {
     let relative_compose = compose_file
         .compose_path
         .strip_prefix(repo_root)
         .unwrap_or(&compose_file.compose_path);
     let target_compose = worktree_path.join(relative_compose);
-    copy_file_with_parents(&compose_file.compose_path, &target_compose).await?;
+    executor
+        .copy_file(&compose_file.compose_path, &target_compose)
+        .await?;
 
     let dockerfile_paths = extract_dockerfile_paths(compose_file);
     for absolute_dockerfile in &dockerfile_paths {
@@ -40,7 +44,7 @@ pub async fn sync_worktree_files(
             .strip_prefix(repo_root)
             .unwrap_or(absolute_dockerfile);
         let target = worktree_path.join(relative);
-        copy_file_with_parents(absolute_dockerfile, &target).await?;
+        executor.copy_file(absolute_dockerfile, &target).await?;
     }
 
     for extra in extra_sync {
@@ -51,25 +55,17 @@ pub async fn sync_worktree_files(
         }
         let target = worktree_path.join(extra);
         if source.is_dir() {
-            copy_directory_recursive(&source, &target).await?;
+            copy_directory_recursive(&source, &target, executor).await?;
         } else {
-            copy_file_with_parents(&source, &target).await?;
+            executor.copy_file(&source, &target).await?;
         }
     }
 
     Ok(())
 }
 
-async fn copy_file_with_parents(source: &Path, target: &Path) -> Result<()> {
-    if let Some(parent) = target.parent() {
-        tokio::fs::create_dir_all(parent).await?;
-    }
-    tokio::fs::copy(source, target).await?;
-    Ok(())
-}
-
-async fn copy_directory_recursive(source: &Path, target: &Path) -> Result<()> {
-    tokio::fs::create_dir_all(target).await?;
+async fn copy_directory_recursive(source: &Path, target: &Path, executor: &Executor) -> Result<()> {
+    executor.create_dir_all(target).await?;
 
     let mut entries = tokio::fs::read_dir(source).await?;
     while let Some(entry) = entries.next_entry().await? {
@@ -77,9 +73,14 @@ async fn copy_directory_recursive(source: &Path, target: &Path) -> Result<()> {
         let target_path = target.join(entry.file_name());
 
         if entry_path.is_dir() {
-            Box::pin(copy_directory_recursive(&entry_path, &target_path)).await?;
+            Box::pin(copy_directory_recursive(
+                &entry_path,
+                &target_path,
+                executor,
+            ))
+            .await?;
         } else {
-            tokio::fs::copy(&entry_path, &target_path).await?;
+            executor.copy_file(&entry_path, &target_path).await?;
         }
     }
 
@@ -178,9 +179,15 @@ mod tests {
 
         let compose_file = make_compose_file(compose_path, vec![]);
 
-        sync_worktree_files(repo.path(), worktree.path(), &compose_file, &[])
-            .await
-            .unwrap();
+        sync_worktree_files(
+            repo.path(),
+            worktree.path(),
+            &compose_file,
+            &[],
+            &Executor::Real,
+        )
+        .await
+        .unwrap();
 
         let target = worktree.path().join("compose.yaml");
         assert!(target.exists());
@@ -213,9 +220,15 @@ mod tests {
         let compose_file = make_compose_file(compose_path, vec![]);
 
         let extra = vec!["Makefile".to_string(), "config".to_string()];
-        sync_worktree_files(repo.path(), worktree.path(), &compose_file, &extra)
-            .await
-            .unwrap();
+        sync_worktree_files(
+            repo.path(),
+            worktree.path(),
+            &compose_file,
+            &extra,
+            &Executor::Real,
+        )
+        .await
+        .unwrap();
 
         assert!(worktree.path().join("Makefile").exists());
         assert!(worktree.path().join("config/settings.toml").exists());
@@ -234,7 +247,14 @@ mod tests {
         let compose_file = make_compose_file(compose_path, vec![]);
 
         let extra = vec!["nonexistent.txt".to_string()];
-        let result = sync_worktree_files(repo.path(), worktree.path(), &compose_file, &extra).await;
+        let result = sync_worktree_files(
+            repo.path(),
+            worktree.path(),
+            &compose_file,
+            &extra,
+            &Executor::Real,
+        )
+        .await;
         assert!(result.is_ok());
     }
 }

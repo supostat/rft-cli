@@ -2,27 +2,32 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use crate::error::Result;
+use crate::executor::Executor;
 use crate::ports::PortAllocation;
 
 const BLOCK_START: &str = "# --- rft port overrides ---";
 const BLOCK_END: &str = "# --- end rft ---";
 
-pub async fn copy_base_env(repo_root: &Path, worktree_path: &Path) -> Result<PathBuf> {
+pub async fn copy_base_env(
+    repo_root: &Path,
+    worktree_path: &Path,
+    executor: &Executor,
+) -> Result<PathBuf> {
     let target = worktree_path.join(".env");
 
     let env_source = repo_root.join(".env");
     if env_source.is_file() {
-        tokio::fs::copy(&env_source, &target).await?;
+        executor.copy_file(&env_source, &target).await?;
         return Ok(target);
     }
 
     let example_source = repo_root.join(".env.example");
     if example_source.is_file() {
-        tokio::fs::copy(&example_source, &target).await?;
+        executor.copy_file(&example_source, &target).await?;
         return Ok(target);
     }
 
-    tokio::fs::write(&target, "").await?;
+    executor.write_file(&target, "").await?;
     Ok(target)
 }
 
@@ -30,10 +35,17 @@ pub async fn inject_port_overrides(
     env_path: &Path,
     allocations: &[PortAllocation],
     env_overrides: &HashMap<String, String>,
+    executor: &Executor,
 ) -> Result<()> {
+    let block = build_override_block(allocations, env_overrides);
+
+    if executor.is_dry_run() {
+        executor.write_file(env_path, &block).await?;
+        return Ok(());
+    }
+
     let content = tokio::fs::read_to_string(env_path).await?;
     let clean = strip_override_block(&content);
-    let block = build_override_block(allocations, env_overrides);
 
     let mut final_content = clean.trim_end().to_string();
     if !final_content.is_empty() {
@@ -227,7 +239,9 @@ EXTRA=value
             .await
             .unwrap();
 
-        let target = copy_base_env(repo.path(), worktree.path()).await.unwrap();
+        let target = copy_base_env(repo.path(), worktree.path(), &Executor::Real)
+            .await
+            .unwrap();
         assert_eq!(
             tokio::fs::read_to_string(&target).await.unwrap(),
             "DB=postgres"
@@ -243,7 +257,9 @@ EXTRA=value
             .await
             .unwrap();
 
-        let target = copy_base_env(repo.path(), worktree.path()).await.unwrap();
+        let target = copy_base_env(repo.path(), worktree.path(), &Executor::Real)
+            .await
+            .unwrap();
         assert_eq!(
             tokio::fs::read_to_string(&target).await.unwrap(),
             "DB=example"
@@ -255,7 +271,9 @@ EXTRA=value
         let repo = tempfile::tempdir().unwrap();
         let worktree = tempfile::tempdir().unwrap();
 
-        let target = copy_base_env(repo.path(), worktree.path()).await.unwrap();
+        let target = copy_base_env(repo.path(), worktree.path(), &Executor::Real)
+            .await
+            .unwrap();
         assert_eq!(tokio::fs::read_to_string(&target).await.unwrap(), "");
     }
 
@@ -267,12 +285,12 @@ EXTRA=value
 
         let allocations = vec![make_allocation("WEB_PORT", 23001)];
 
-        inject_port_overrides(&env_path, &allocations, &HashMap::new())
+        inject_port_overrides(&env_path, &allocations, &HashMap::new(), &Executor::Real)
             .await
             .unwrap();
         let first_write = tokio::fs::read_to_string(&env_path).await.unwrap();
 
-        inject_port_overrides(&env_path, &allocations, &HashMap::new())
+        inject_port_overrides(&env_path, &allocations, &HashMap::new(), &Executor::Real)
             .await
             .unwrap();
         let second_write = tokio::fs::read_to_string(&env_path).await.unwrap();

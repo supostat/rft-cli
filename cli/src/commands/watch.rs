@@ -20,7 +20,7 @@ pub async fn run(indices: Vec<usize>) -> Result<()> {
         "Watch".cyan().bold()
     );
 
-    super::start::run(indices.clone()).await?;
+    super::start::run(indices.clone(), false).await?;
 
     let paths_to_watch = collect_watch_paths(&context.compose_file);
 

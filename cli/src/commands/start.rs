@@ -8,6 +8,7 @@ use crate::commands::list;
 use crate::compose::ComposeFile;
 use crate::context::{build_context, filter_worktrees};
 use crate::error::{Result, RftError};
+use crate::executor::Executor;
 use crate::git::WorktreeInfo;
 use crate::ports::check::check_ports;
 use crate::ports::{BASE_OFFSET, PortMapping, allocate_worktree_ports};
@@ -23,9 +24,15 @@ struct WorktreeStartParams {
     extra_sync: Vec<String>,
     env_overrides: HashMap<String, String>,
     base_offset: u32,
+    executor: Executor,
 }
 
-pub async fn run(indices: Vec<usize>) -> Result<()> {
+pub async fn run(indices: Vec<usize>, dry_run: bool) -> Result<()> {
+    let executor = if dry_run {
+        Executor::DryRun
+    } else {
+        Executor::Real
+    };
     let context = build_context().await?;
     let targets = filter_worktrees(&context.worktrees, &indices);
 
@@ -76,6 +83,7 @@ pub async fn run(indices: Vec<usize>) -> Result<()> {
             extra_sync: context.config.sync.clone(),
             env_overrides: context.config.env_overrides.clone(),
             base_offset,
+            executor,
         };
 
         join_set.spawn(async move { start_single_worktree(params).await });
@@ -179,19 +187,29 @@ async fn start_single_worktree(params: WorktreeStartParams) -> Result<()> {
         &params.worktree.path,
         &params.compose_file,
         &params.extra_sync,
+        &params.executor,
     )
     .await?;
 
-    let env_path = env::copy_base_env(&params.repo_root, &params.worktree.path).await?;
-    env::inject_port_overrides(&env_path, &allocations, &params.env_overrides).await?;
+    let env_path =
+        env::copy_base_env(&params.repo_root, &params.worktree.path, &params.executor).await?;
+    env::inject_port_overrides(
+        &env_path,
+        &allocations,
+        &params.env_overrides,
+        &params.executor,
+    )
+    .await?;
 
-    let output = tokio::process::Command::new("docker")
-        .args(["compose", "-p", &project_name, "up", "-d", "--build"])
-        .current_dir(&params.worktree.path)
-        .output()
+    let docker_args = ["compose", "-p", &project_name, "up", "-d", "--build"];
+    let output = params
+        .executor
+        .run_docker(&docker_args, &params.worktree.path)
         .await?;
 
-    if !output.status.success() {
+    if let Some(output) = output
+        && !output.status.success()
+    {
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
         return Err(RftError::CommandFailed {
             cmd: format!("docker compose -p {project_name} up -d --build"),

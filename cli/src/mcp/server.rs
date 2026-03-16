@@ -42,7 +42,7 @@ impl RftMcpServer {
         Parameters(args): Parameters<IndicesArgs>,
     ) -> Result<CallToolResult, McpError> {
         let indices = args.indices.unwrap_or_default();
-        match crate::commands::start::run(indices).await {
+        match crate::commands::start::run(indices, false).await {
             Ok(()) => Ok(CallToolResult::success(vec![Content::text(
                 "Started successfully",
             )])),
