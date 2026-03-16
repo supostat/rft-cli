@@ -74,6 +74,11 @@ enum Command {
         /// Shell to generate completions for
         shell: clap_complete::Shell,
     },
+    /// Start stacks and restart on compose/Dockerfile changes
+    Watch {
+        /// Worktree indices to watch (1-indexed, all if omitted)
+        indices: Vec<usize>,
+    },
     /// Start MCP server (stdio transport)
     Mcp,
 }
@@ -107,6 +112,7 @@ async fn main() -> Result<()> {
             clap_complete::generate(shell, &mut cmd, "rft", &mut std::io::stdout());
             Ok(())
         }
+        Command::Watch { indices } => commands::watch::run(indices).await.map_err(Into::into),
         Command::Mcp => mcp::server::run_mcp_server().await.map_err(Into::into),
     }
 }
