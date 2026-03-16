@@ -1,0 +1,17 @@
+pre-commit:
+  parallel: true
+  commands:
+    fmt:
+      root: cli/
+      glob: "*.rs"
+      run: cargo fmt --check
+    clippy:
+      root: cli/
+      glob: "*.rs"
+      run: cargo clippy -- -D warnings
+
+pre-push:
+  commands:
+    test:
+      root: cli/
+      run: cargo test
