@@ -1,0 +1,320 @@
+---
+title: Getting Started
+description: Step-by-step walkthrough from zero to running isolated Docker stacks
+---
+
+Complete walkthrough: install rft, prepare a project, create worktrees, and manage isolated Docker Compose stacks.
+
+## Step 1 — Install rft
+
+```bash
+cargo install rft-cli
+```
+
+Verify:
+
+```bash
+rft --version
+# rft 0.1.0
+```
+
+## Step 2 — Prepare your project
+
+You need a git repo with a `docker-compose.yml` (or `compose.yaml`). Ports **must** use the `${VAR:-default}` format — this is how rft knows which ports to override.
+
+If your compose file looks like this:
+
+```yaml
+services:
+  frontend:
+    ports:
+      - "3000:3000"  # hardcoded — rft can't manage this
+```
+
+Change it to:
+
+```yaml
+services:
+  frontend:
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"  # rft will override FRONTEND_PORT
+```
+
+### Full example
+
+```yaml
+# docker-compose.yml
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    env_file:
+      - .env
+
+  api:
+    build: ./backend
+    ports:
+      - "${API_PORT:-8080}:8080"
+    env_file:
+      - .env
+
+  database:
+    image: postgres:16
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    environment:
+      POSTGRES_PASSWORD: dev
+```
+
+Create a `.env` file (rft will copy and extend it for each worktree):
+
+```bash
+# .env
+FRONTEND_PORT=3000
+API_PORT=8080
+DB_PORT=5432
+```
+
+Make sure everything works on the main branch first:
+
+```bash
+docker compose up -d
+docker compose ps    # all services running
+docker compose down
+```
+
+## Step 3 — Set up git worktrees
+
+A git worktree is a separate directory checked out at a different branch. All worktrees share the same git history, but each has its own files on disk. You can edit, commit, and run Docker in each one independently.
+
+### Recommended: bare repo + worktrees
+
+The cleanest approach is to clone your repo as a **bare repo** and create worktrees for every branch — including main. This keeps all branches organized in one parent directory.
+
+```bash
+# Create a project directory and clone as bare
+mkdir ~/projects/myapp
+cd ~/projects/myapp
+git clone --bare git@github.com:you/myapp.git .bare
+```
+
+The `.bare/` directory contains git objects and refs but no working files. Two setup steps are needed:
+
+```bash
+# 1. Create a .git file (not directory!) that points to .bare.
+# Without this, git commands won't work from ~/projects/myapp/ —
+# git won't know where the repository is.
+echo "gitdir: ./.bare" > .git
+
+# 2. Tell git how to fetch remote branches.
+# Bare clones don't set a fetch refspec, so `git fetch` won't
+# download any branches. This restores normal clone behavior.
+git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+```
+
+Now create worktrees — one per branch:
+
+```bash
+# Worktree for main branch
+git worktree add main
+
+# Worktrees for feature branches (-b creates the branch)
+git worktree add feature-auth -b feature/auth
+git worktree add feature-payments -b feature/payments
+```
+
+Result:
+
+```
+~/projects/myapp/
+├── .bare/              ← git objects (not a working directory)
+├── .git                ← file pointing to .bare
+├── main/               ← main branch
+├── feature-auth/       ← feature/auth branch
+└── feature-payments/   ← feature/payments branch
+```
+
+Verify:
+
+```bash
+git worktree list
+# /Users/you/projects/myapp/.bare            (bare)
+# /Users/you/projects/myapp/main             abc1234 [main]
+# /Users/you/projects/myapp/feature-auth     def5678 [feature/auth]
+# /Users/you/projects/myapp/feature-payments ghi9012 [feature/payments]
+```
+
+Each directory is a full working copy. `cd` into any of them to edit, test, and commit.
+
+### Alternative: worktrees from a regular repo
+
+If you already have a regular (non-bare) clone, you can still create worktrees:
+
+```bash
+cd ~/projects/myapp          # your existing repo on main branch
+
+# Create worktrees next to the repo
+git worktree add ../myapp-auth -b feature/auth
+git worktree add ../myapp-payments -b feature/payments
+```
+
+```
+~/projects/
+├── myapp/              ← main branch (original repo)
+├── myapp-auth/         ← feature/auth
+└── myapp-payments/     ← feature/payments
+```
+
+rft works with both approaches.
+
+### The problem rft solves
+
+Without rft, running `docker compose up` in each worktree would fail — all of them try to bind to the same ports (3000, 8080, 5432). You'd have to manually edit `.env` files in each worktree with different ports. rft does this automatically.
+
+## Step 4 — See what rft detects
+
+Run all `rft` commands from the **main worktree** — the directory with your main branch:
+
+```bash
+# Bare repo setup: main worktree is ~/projects/myapp/main
+cd ~/projects/myapp/main
+
+# Regular repo: main worktree is the repo itself
+# cd ~/projects/myapp
+
+rft list
+```
+
+Expected output:
+
+```
+┌───┬──────────────────┬────────┬──────────────────────────────────────┐
+│ # │ Branch           │ Status │ Ports                                │
+├───┼──────────────────┼────────┼──────────────────────────────────────┤
+│ 1 │ feature/auth     │ down   │ FRONTEND_PORT=23001, API_PORT=28081, │
+│   │                  │        │ DB_PORT=25433                        │
+│ 2 │ feature/payments │ down   │ FRONTEND_PORT=23002, API_PORT=28082, │
+│   │                  │        │ DB_PORT=25434                        │
+└───┴──────────────────┴────────┴──────────────────────────────────────┘
+```
+
+What rft did automatically:
+- Found `docker-compose.yml` in the repo root
+- Parsed the `${VAR:-default}` port mappings (3 services × 3 ports)
+- Discovered 2 non-main worktrees (main is excluded — it uses default ports)
+- Allocated unique ports for each: `20000 + default_port + worktree_index`
+
+## Step 5 — Start stacks
+
+```bash
+# Start all worktree stacks
+rft start
+```
+
+rft will, for each worktree in parallel:
+1. Copy `docker-compose.yml` and Dockerfiles to the worktree
+2. Copy `.env` and inject port overrides
+3. Run `docker compose up -d --build`
+
+```
+Starting [1] feature/auth (myproject-rft-1-feature-auth)
+Starting [2] feature/payments (myproject-rft-2-feature-payments)
+Started [1] feature/auth
+Started [2] feature/payments
+```
+
+After starting, rft shows the updated table with status `up`.
+
+### Start a specific worktree
+
+```bash
+rft start 1        # only worktree #1
+rft start 1 2      # worktrees #1 and #2
+```
+
+## Step 6 — Work with your stacks
+
+### Check status
+
+```bash
+rft list
+# Status column shows "up" for running stacks
+```
+
+### View logs
+
+```bash
+rft logs 1              # stream all logs for worktree #1
+rft logs 1 api          # only the api service
+rft logs 1 --no-follow  # print last 100 lines and exit
+```
+
+### Access your services
+
+Each worktree has unique ports. From the `rft list` output:
+- Worktree #1: frontend at `localhost:23001`, API at `localhost:28081`
+- Worktree #2: frontend at `localhost:23002`, API at `localhost:28082`
+- Main branch (default ports): frontend at `localhost:3000`, API at `localhost:8080`
+
+No conflicts.
+
+## Step 7 — Promote changes
+
+After making changes in a worktree, transfer them to your current branch:
+
+```bash
+# Preview what would be promoted
+rft promote 1 --dry-run
+
+# Promote all changes from worktree #1
+rft promote 1
+
+# Promote only Rust files
+rft promote 1 --files "*.rs"
+```
+
+rft uses `git checkout` for committed files (preserves history) and direct file copy for uncommitted/untracked files. It automatically excludes `.env` and compose files.
+
+If your current branch has uncommitted changes that conflict, rft will warn you and abort.
+
+## Step 8 — Stop and clean up
+
+```bash
+# Stop all stacks
+rft stop
+
+# Stop specific worktree
+rft stop 1
+
+# Restart (stop then start)
+rft restart
+
+# Full cleanup: stop stacks, remove worktrees, prune Docker resources
+rft clean
+```
+
+`rft clean` removes **all non-main worktrees** and their Docker resources. Use with care — any uncommitted changes in worktrees will be lost.
+
+## What's in the .env after rft start?
+
+rft injects a clearly marked block into each worktree's `.env`:
+
+```bash
+# Original content preserved
+DATABASE_URL=postgres://localhost/myapp
+
+# --- rft port overrides ---
+FRONTEND_PORT=23001
+API_PORT=28081
+DB_PORT=25433
+# --- end rft ---
+```
+
+This block is replaced (not duplicated) on every `rft start`.
+
+## Next steps
+
+- [Configuration](/docs/configuration) — customize sync files, port offset, env overrides
+- [MCP Integration](/docs/integrations/mcp) — control rft from Claude Code
+- [Port Allocation](/docs/concepts/port-allocation) — understand the formula
