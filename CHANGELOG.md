@@ -6,6 +6,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-03-16
+
+### Added
+- `rft init` — analyze compose file, suggest port fixes, generate `.rftrc.toml`
+- 8 integration tests (version, list, init, status, completions, dry-run)
+- Troubleshooting page on documentation website (9 common issues)
+- Command pages for init and watch on website
+- All 12 commands linked in website command index
+- README badges (crates.io, CI, license)
+
+### Changed
+- `LazyLock<Regex>` for port extraction (compiled once, not per call)
+- `RftError::Multiple` for aggregate start/stop errors (was `Config`)
+- Re-export `suggest_env_var` from ports module
+
+### Removed
+- Dead code `get_non_main_worktrees`
+
 ## [0.3.0] — 2026-03-16
 
 ### Added
@@ -59,7 +77,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Fumadocs documentation website (22 pages)
 - Example Docker Compose project
 
-[Unreleased]: https://github.com/supostat/rft-cli/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/supostat/rft-cli/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/supostat/rft-cli/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/supostat/rft-cli/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/supostat/rft-cli/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/supostat/rft-cli/releases/tag/v0.1.0
