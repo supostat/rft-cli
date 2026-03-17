@@ -143,11 +143,7 @@ fn render_table_as_text(rows: &[WorktreeRow]) -> String {
     lines.join("\n")
 }
 
-fn port_hyperlink(port: u16, host: &str) -> String {
-    format!("\x1b]8;;http://{host}:{port}\x1b\\{port}\x1b]8;;\x1b\\")
-}
-
-pub fn render_table(rows: &[WorktreeRow], port_mappings: &[PortMapping], host: &str) {
+pub fn render_table(rows: &[WorktreeRow], port_mappings: &[PortMapping], _host: &str) {
     let mut table = Table::new();
     table
         .load_preset(UTF8_FULL_CONDENSED)
@@ -167,13 +163,7 @@ pub fn render_table(rows: &[WorktreeRow], port_mappings: &[PortMapping], host: &
         } else {
             row.ports
                 .iter()
-                .map(|allocation| {
-                    format!(
-                        "{}={}",
-                        allocation.env_var,
-                        port_hyperlink(allocation.port, host)
-                    )
-                })
+                .map(|allocation| format!("{}={}", allocation.env_var, allocation.port))
                 .collect::<Vec<_>>()
                 .join("\n")
         };
