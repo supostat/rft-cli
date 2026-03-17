@@ -6,6 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-03-17
+
+### Fixed
+- Table rendering broken by OSC 8 hyperlinks (comfy-table incompatible with escape sequences)
+
 ## [0.5.0] — 2026-03-17
 
 ### Added
@@ -108,7 +113,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Fumadocs documentation website (22 pages)
 - Example Docker Compose project
 
-[Unreleased]: https://github.com/supostat/rft-cli/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/supostat/rft-cli/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/supostat/rft-cli/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/supostat/rft-cli/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/supostat/rft-cli/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/supostat/rft-cli/compare/v0.4.0...v0.4.1
