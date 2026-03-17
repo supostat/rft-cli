@@ -6,6 +6,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-03-17
+
+### Added
+- Bare-repo worktree support — stable project naming from any worktree via `git-common-dir`
+- Three repo patterns: normal clone, bare+`.bare` trick, plain bare clone
+- Run rft from bare repo root (auto-fallback to main worktree)
+- `NoMainWorktree` error with actionable hint
+- Plain bare clone documented in getting-started
+
+### Changed
+- `get_repo_root`/`get_repo_name` replaced by `resolve_repo_identity`
+- Docker project names stable regardless of which worktree rft runs from
+
 ## [0.4.0] — 2026-03-16
 
 ### Added
@@ -77,7 +90,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Fumadocs documentation website (22 pages)
 - Example Docker Compose project
 
-[Unreleased]: https://github.com/supostat/rft-cli/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/supostat/rft-cli/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/supostat/rft-cli/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/supostat/rft-cli/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/supostat/rft-cli/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/supostat/rft-cli/compare/v0.1.0...v0.2.0
