@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Output;
 
 use owo_colors::OwoColorize;
@@ -17,6 +17,10 @@ impl Executor {
     }
 
     pub async fn copy_file(&self, source: &Path, target: &Path) -> Result<()> {
+        if same_file(source, target) {
+            return Ok(());
+        }
+
         match self {
             Self::Real => {
                 if let Some(parent) = target.parent() {
@@ -89,6 +93,11 @@ impl Executor {
     }
 }
 
+fn same_file(a: &Path, b: &Path) -> bool {
+    let resolve = |p: &Path| -> PathBuf { p.canonicalize().unwrap_or_else(|_| p.to_path_buf()) };
+    resolve(a) == resolve(b)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -121,6 +130,20 @@ mod tests {
         Executor::Real.copy_file(&source, &target).await.unwrap();
 
         assert_eq!(tokio::fs::read_to_string(&target).await.unwrap(), "data");
+    }
+
+    #[tokio::test]
+    async fn copy_same_file_is_noop() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("compose.yaml");
+        tokio::fs::write(&file, "services: {}").await.unwrap();
+
+        Executor::Real.copy_file(&file, &file).await.unwrap();
+
+        assert_eq!(
+            tokio::fs::read_to_string(&file).await.unwrap(),
+            "services: {}"
+        );
     }
 
     #[tokio::test]
