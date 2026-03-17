@@ -73,11 +73,11 @@ Each directory has its own files. You can `cd` into any, edit, commit, and run D
 
 **The problem:** `docker compose up` in each directory tries to bind the same ports (3000, 8080). That's what rft solves.
 
-> **Alternative:** you can also create worktrees from a regular (non-bare) repo with `git worktree add ../myapp-auth -b feature/auth`. rft works with both approaches.
+> **Other setups work too.** You can create worktrees from a regular (non-bare) clone with `git worktree add ../myapp-auth -b feature/auth`, or use a plain bare clone (`git clone --bare <url> myapp`). rft detects the repo structure automatically and works from any worktree.
 
 ### 4. Use rft
 
-Run `rft` from the **main worktree** (`~/projects/myapp/main`):
+Run `rft` from any worktree. The main worktree is recommended for `rft start` (compose files are synced from there):
 
 ```bash
 cd ~/projects/myapp/main

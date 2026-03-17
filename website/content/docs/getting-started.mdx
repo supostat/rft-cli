@@ -166,7 +166,25 @@ git worktree add ../myapp-payments -b feature/payments
 └── myapp-payments/     ← feature/payments
 ```
 
-rft works with both approaches.
+### Alternative: plain bare clone
+
+Some teams use a plain bare clone (without the `.bare` + `.git` file trick):
+
+```bash
+git clone --bare git@github.com:you/myapp.git boss
+cd boss
+git worktree add main main
+git worktree add feature-auth -b feature/auth
+```
+
+```
+~/projects/boss/
+├── HEAD, objects, refs  ← git internals at top level
+├── main/                ← main branch
+└── feature-auth/        ← feature/auth branch
+```
+
+rft works with all three approaches — it detects the repo structure automatically.
 
 ### The problem rft solves
 
@@ -174,13 +192,13 @@ Without rft, running `docker compose up` in each worktree would fail — all of 
 
 ## Step 4 — See what rft detects
 
-Run all `rft` commands from the **main worktree** — the directory with your main branch:
+You can run `rft` from **any worktree**. For `rft start`, the main worktree is recommended (compose files are synced from your current directory to the target worktrees):
 
 ```bash
-# Bare repo setup: main worktree is ~/projects/myapp/main
+# Bare repo setup
 cd ~/projects/myapp/main
 
-# Regular repo: main worktree is the repo itself
+# Regular repo
 # cd ~/projects/myapp
 
 rft list

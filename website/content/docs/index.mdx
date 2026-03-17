@@ -44,7 +44,7 @@ git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"  # enable b
 git worktree add main
 git worktree add feature-auth -b feature/auth
 
-# Manage isolated stacks from main worktree
+# Manage isolated stacks (works from any worktree)
 cd main
 rft list       # see worktrees with unique ports
 rft start      # start all stacks in parallel
