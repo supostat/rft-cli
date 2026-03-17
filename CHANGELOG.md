@@ -6,6 +6,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-03-17
+
+### Added
+- `.rftrc.local.toml` — personal config (gitignored), merges over shared `.rftrc.toml`
+- `host` config option (default: `localhost`), env `RFT_HOST`
+- Clickable port numbers in `rft list` (OSC 8 hyperlinks, cmd+click opens browser)
+- `rft init` adds `.rftrc.local.toml` to `.gitignore` automatically
+
+### Changed
+- Ports displayed vertically (one per line) instead of comma-separated
+- Status indicators: `● up`, `○ down`, `◐ partial` instead of plain text
+- Start/stop output: `▶`/`■`/`✓` icons, no Docker project name
+
 ## [0.4.2] — 2026-03-17
 
 ### Fixed
@@ -95,7 +108,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Fumadocs documentation website (22 pages)
 - Example Docker Compose project
 
-[Unreleased]: https://github.com/supostat/rft-cli/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/supostat/rft-cli/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/supostat/rft-cli/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/supostat/rft-cli/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/supostat/rft-cli/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/supostat/rft-cli/compare/v0.3.0...v0.4.0
