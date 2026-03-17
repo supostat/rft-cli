@@ -1,10 +1,11 @@
-use comfy_table::{ContentArrangement, Table, presets::UTF8_FULL_CONDENSED};
 use miette::Result;
 use owo_colors::OwoColorize;
 
 use crate::context::{build_context, filter_worktrees};
 use crate::ports::{BASE_OFFSET, PortAllocation, PortMapping, allocate_worktree_ports};
 use crate::sanitize::compose_project_name;
+
+const PORTS_PER_LINE: usize = 3;
 
 pub async fn run() -> Result<()> {
     run_inner().await.map_err(miette::Report::new)
@@ -52,7 +53,7 @@ pub async fn run_inner() -> crate::error::Result<()> {
         });
     }
 
-    render_table(&rows, &context.port_mappings, &context.config.host);
+    render_cards(&rows, &context.port_mappings, &context.config.host);
     Ok(())
 }
 
@@ -143,14 +144,20 @@ fn render_table_as_text(rows: &[WorktreeRow]) -> String {
     lines.join("\n")
 }
 
-pub fn render_table(rows: &[WorktreeRow], port_mappings: &[PortMapping], _host: &str) {
-    let mut table = Table::new();
-    table
-        .load_preset(UTF8_FULL_CONDENSED)
-        .set_content_arrangement(ContentArrangement::Dynamic)
-        .set_header(vec!["#", "Branch", "Status", "Ports"]);
+fn port_hyperlink(port: u16, host: &str) -> String {
+    format!("\x1b]8;;http://{host}:{port}\x1b\\{port}\x1b]8;;\x1b\\")
+}
 
-    for row in rows {
+fn format_port(allocation: &PortAllocation, host: &str) -> String {
+    format!(
+        "{}={}",
+        allocation.env_var,
+        port_hyperlink(allocation.port, host)
+    )
+}
+
+pub fn render_cards(rows: &[WorktreeRow], port_mappings: &[PortMapping], host: &str) {
+    for (i, row) in rows.iter().enumerate() {
         let status_display = match row.status {
             ContainerStatus::Up => format!("{}", "● up".green()),
             ContainerStatus::Down => format!("{}", "○ down".red()),
@@ -158,25 +165,28 @@ pub fn render_table(rows: &[WorktreeRow], port_mappings: &[PortMapping], _host: 
             ContainerStatus::Unknown => format!("{}", "○ unknown".dimmed()),
         };
 
-        let ports_display = if row.ports.is_empty() {
-            "-".dimmed().to_string()
-        } else {
-            row.ports
-                .iter()
-                .map(|allocation| format!("{}={}", allocation.env_var, allocation.port))
-                .collect::<Vec<_>>()
-                .join("\n")
-        };
-
-        table.add_row(vec![
-            row.index.to_string(),
-            row.branch.clone(),
+        println!(
+            "{} {}  {}",
+            format!("[{}]", row.index).bold(),
+            row.branch.bold(),
             status_display,
-            ports_display,
-        ]);
-    }
+        );
 
-    println!("{table}");
+        if !row.ports.is_empty() {
+            for chunk in row.ports.chunks(PORTS_PER_LINE) {
+                let line = chunk
+                    .iter()
+                    .map(|allocation| format_port(allocation, host))
+                    .collect::<Vec<_>>()
+                    .join("  ");
+                println!("    {}", line.dimmed());
+            }
+        }
+
+        if i < rows.len() - 1 {
+            println!();
+        }
+    }
 
     if has_raw_port_warnings(port_mappings) {
         println!(
