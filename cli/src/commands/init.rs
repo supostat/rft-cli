@@ -99,6 +99,8 @@ pub async fn run() -> Result<()> {
         println!("\n  {} Created .rftrc.toml", "✓".green());
     }
 
+    ensure_gitignore_has_local_config(&repo_root).await;
+
     if managed_count == 0 && raw_count > 0 {
         println!(
             "\n{}",
@@ -114,6 +116,32 @@ pub async fn run() -> Result<()> {
     }
 
     Ok(())
+}
+
+async fn ensure_gitignore_has_local_config(repo_root: &std::path::Path) {
+    let gitignore_path = repo_root.join(".gitignore");
+    let content = tokio::fs::read_to_string(&gitignore_path)
+        .await
+        .unwrap_or_default();
+
+    if content.contains(".rftrc.local.toml") {
+        return;
+    }
+
+    let entry = if content.is_empty() || content.ends_with('\n') {
+        ".rftrc.local.toml\n"
+    } else {
+        "\n.rftrc.local.toml\n"
+    };
+
+    match tokio::fs::write(&gitignore_path, format!("{content}{entry}")).await {
+        Ok(()) => {
+            println!("  {} Added .rftrc.local.toml to .gitignore", "✓".green());
+        }
+        Err(error) => {
+            eprintln!("warning: could not update .gitignore: {error}");
+        }
+    }
 }
 
 #[cfg(test)]

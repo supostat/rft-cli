@@ -54,6 +54,7 @@ impl From<ConfigFile> for RftConfig {
 
 pub fn load_config(repo_root: &Path) -> RftConfig {
     let mut config = load_from_files(repo_root);
+    apply_local_overrides(&mut config, repo_root);
     apply_env_overrides(&mut config, |key| std::env::var(key));
     config
 }
@@ -69,6 +70,38 @@ fn load_from_files(repo_root: &Path) -> RftConfig {
         return config;
     }
     RftConfig::default()
+}
+
+fn apply_local_overrides(config: &mut RftConfig, repo_root: &Path) {
+    let path = repo_root.join(".rftrc.local.toml");
+    let content = match std::fs::read_to_string(&path) {
+        Ok(content) => content,
+        Err(_) => return,
+    };
+
+    let local: ConfigFile = match toml::from_str(&content) {
+        Ok(parsed) => parsed,
+        Err(error) => {
+            eprintln!("warning: failed to parse {}: {error}", path.display());
+            return;
+        }
+    };
+
+    if let Some(sync) = local.sync {
+        config.sync = sync;
+    }
+    if let Some(env_overrides) = local.env_overrides {
+        config.env_overrides.extend(env_overrides);
+    }
+    if let Some(port_offset) = local.port_offset {
+        config.port_offset = Some(port_offset);
+    }
+    if let Some(main_branch) = local.main_branch {
+        config.main_branch = Some(main_branch);
+    }
+    if let Some(host) = local.host {
+        config.host = host;
+    }
 }
 
 fn load_toml(repo_root: &Path) -> Option<RftConfig> {
@@ -242,6 +275,46 @@ DATABASE_URL = "postgres://localhost/test"
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
         move |key: &str| map.get(key).cloned().ok_or(std::env::VarError::NotPresent)
+    }
+
+    #[test]
+    fn local_toml_overrides_shared() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join(".rftrc.toml"),
+            r#"
+port_offset = 20000
+sync = ["nginx/"]
+main_branch = "main"
+"#,
+        )
+        .unwrap();
+        fs::write(
+            dir.path().join(".rftrc.local.toml"),
+            r#"
+host = "192.168.1.50"
+port_offset = 30000
+"#,
+        )
+        .unwrap();
+
+        let config = load_config(dir.path());
+
+        assert_eq!(config.host, "192.168.1.50");
+        assert_eq!(config.port_offset, Some(30000));
+        assert_eq!(config.sync, vec!["nginx/"]);
+        assert_eq!(config.main_branch, Some("main".to_string()));
+    }
+
+    #[test]
+    fn local_toml_without_shared_works() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join(".rftrc.local.toml"), r#"host = "10.0.0.1""#).unwrap();
+
+        let config = load_config(dir.path());
+
+        assert_eq!(config.host, "10.0.0.1");
+        assert_eq!(config.port_offset, None);
     }
 
     #[test]
