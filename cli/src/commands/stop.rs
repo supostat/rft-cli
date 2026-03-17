@@ -74,8 +74,8 @@ pub async fn stop_single_project(
 ) -> Result<()> {
     println!(
         "{} {}",
-        "Stopping".yellow().bold(),
-        format!("[{index}] {branch} ({project_name})").bold()
+        "■".yellow().bold(),
+        format!("[{index}] {branch}").bold()
     );
 
     let output = tokio::process::Command::new("docker")
@@ -105,7 +105,7 @@ pub async fn stop_single_project(
 
     println!(
         "{} {}",
-        "Stopped".yellow().bold(),
+        "✓".yellow().bold(),
         format!("[{index}] {branch}").bold()
     );
 

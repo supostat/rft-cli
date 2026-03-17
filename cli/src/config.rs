@@ -3,12 +3,27 @@ use std::path::Path;
 
 use serde::Deserialize;
 
-#[derive(Debug, Clone, Default)]
+const DEFAULT_HOST: &str = "localhost";
+
+#[derive(Debug, Clone)]
 pub struct RftConfig {
     pub sync: Vec<String>,
     pub env_overrides: HashMap<String, String>,
     pub port_offset: Option<u32>,
     pub main_branch: Option<String>,
+    pub host: String,
+}
+
+impl Default for RftConfig {
+    fn default() -> Self {
+        Self {
+            sync: Vec::new(),
+            env_overrides: HashMap::new(),
+            port_offset: None,
+            main_branch: None,
+            host: DEFAULT_HOST.to_string(),
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -17,6 +32,7 @@ struct ConfigFile {
     env_overrides: Option<HashMap<String, String>>,
     port_offset: Option<u32>,
     main_branch: Option<String>,
+    host: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -31,6 +47,7 @@ impl From<ConfigFile> for RftConfig {
             env_overrides: file.env_overrides.unwrap_or_default(),
             port_offset: file.port_offset,
             main_branch: file.main_branch,
+            host: file.host.unwrap_or_else(|| DEFAULT_HOST.to_string()),
         }
     }
 }
@@ -101,6 +118,10 @@ fn apply_env_overrides(
                 eprintln!("warning: invalid RFT_PORT_OFFSET value '{value}': {error}");
             }
         }
+    }
+
+    if let Ok(value) = env_var("RFT_HOST") {
+        config.host = value;
     }
 
     if let Ok(value) = env_var("RFT_SYNC") {

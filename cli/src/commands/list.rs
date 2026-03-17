@@ -52,7 +52,7 @@ pub async fn run_inner() -> crate::error::Result<()> {
         });
     }
 
-    render_table(&rows, &context.port_mappings);
+    render_table(&rows, &context.port_mappings, &context.config.host);
     Ok(())
 }
 
@@ -143,7 +143,11 @@ fn render_table_as_text(rows: &[WorktreeRow]) -> String {
     lines.join("\n")
 }
 
-pub fn render_table(rows: &[WorktreeRow], port_mappings: &[PortMapping]) {
+fn port_hyperlink(port: u16, host: &str) -> String {
+    format!("\x1b]8;;http://{host}:{port}\x1b\\{port}\x1b]8;;\x1b\\")
+}
+
+pub fn render_table(rows: &[WorktreeRow], port_mappings: &[PortMapping], host: &str) {
     let mut table = Table::new();
     table
         .load_preset(UTF8_FULL_CONDENSED)
@@ -152,10 +156,10 @@ pub fn render_table(rows: &[WorktreeRow], port_mappings: &[PortMapping]) {
 
     for row in rows {
         let status_display = match row.status {
-            ContainerStatus::Up => "up".green().to_string(),
-            ContainerStatus::Down => "down".red().to_string(),
-            ContainerStatus::Partial => "partial".yellow().to_string(),
-            ContainerStatus::Unknown => "unknown".dimmed().to_string(),
+            ContainerStatus::Up => format!("{}", "● up".green()),
+            ContainerStatus::Down => format!("{}", "○ down".red()),
+            ContainerStatus::Partial => format!("{}", "◐ partial".yellow()),
+            ContainerStatus::Unknown => format!("{}", "○ unknown".dimmed()),
         };
 
         let ports_display = if row.ports.is_empty() {
@@ -163,9 +167,15 @@ pub fn render_table(rows: &[WorktreeRow], port_mappings: &[PortMapping]) {
         } else {
             row.ports
                 .iter()
-                .map(|allocation| format!("{}={}", allocation.env_var, allocation.port))
+                .map(|allocation| {
+                    format!(
+                        "{}={}",
+                        allocation.env_var,
+                        port_hyperlink(allocation.port, host)
+                    )
+                })
                 .collect::<Vec<_>>()
-                .join(", ")
+                .join("\n")
         };
 
         table.add_row(vec![

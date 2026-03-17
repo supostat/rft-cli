@@ -166,12 +166,8 @@ async fn start_single_worktree(params: WorktreeStartParams) -> Result<()> {
 
     println!(
         "{} {}",
-        "Starting".green().bold(),
-        format!(
-            "[{}] {} ({})",
-            params.worktree.index, params.worktree.branch, project_name
-        )
-        .bold()
+        "▶".green().bold(),
+        format!("[{}] {}", params.worktree.index, params.worktree.branch).bold()
     );
 
     let allocations = allocate_worktree_ports(
@@ -217,7 +213,7 @@ async fn start_single_worktree(params: WorktreeStartParams) -> Result<()> {
 
     println!(
         "{} {}",
-        "Started".green().bold(),
+        "✓".green().bold(),
         format!("[{}] {}", params.worktree.index, params.worktree.branch).bold()
     );
 
