@@ -6,6 +6,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.5.2] — 2026-03-17
+
+### Changed
+- Card layout for `rft list` (replaces comfy-table)
+- Ports grouped 3 per line with OSC 8 clickable links (cmd+click opens browser)
+- Removed `comfy-table` dependency
+
 ## [0.5.1] — 2026-03-17
 
 ### Fixed
@@ -113,7 +120,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Fumadocs documentation website (22 pages)
 - Example Docker Compose project
 
-[Unreleased]: https://github.com/supostat/rft-cli/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/supostat/rft-cli/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/supostat/rft-cli/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/supostat/rft-cli/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/supostat/rft-cli/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/supostat/rft-cli/compare/v0.4.1...v0.4.2
