@@ -2,13 +2,14 @@ use owo_colors::OwoColorize;
 
 use crate::compose::{detect_compose_file, parse_compose_file};
 use crate::error::Result;
-use crate::git::{get_repo_name, get_repo_root};
+use crate::git::resolve_repo_identity;
 use crate::ports::extract_port_mappings;
 
 pub async fn run() -> Result<()> {
     let cwd = std::env::current_dir()?;
-    let repo_root = get_repo_root(&cwd).await?;
-    let repo_name = get_repo_name(&repo_root);
+    let identity = resolve_repo_identity(&cwd).await?;
+    let repo_root = identity.working_root;
+    let repo_name = identity.project_name;
 
     println!(
         "{} {} ({})",

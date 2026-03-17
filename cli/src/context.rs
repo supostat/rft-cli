@@ -22,8 +22,9 @@ pub async fn build_context() -> Result<RftContext> {
 }
 
 pub async fn build_context_from(cwd: &std::path::Path) -> Result<RftContext> {
-    let repo_root = crate::git::get_repo_root(cwd).await?;
-    let repo_name = crate::git::get_repo_name(&repo_root);
+    let identity = crate::git::resolve_repo_identity(cwd).await?;
+    let repo_root = identity.working_root;
+    let repo_name = identity.project_name;
 
     let compose_path = crate::compose::detect_compose_file(&repo_root).ok_or_else(|| {
         crate::error::RftError::ComposeNotFound {

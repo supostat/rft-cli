@@ -12,9 +12,30 @@ pub struct WorktreeInfo {
     pub index: usize,
 }
 
-pub async fn get_repo_root(cwd: &Path) -> Result<PathBuf> {
+#[derive(Debug, Clone)]
+pub struct RepoIdentity {
+    pub working_root: PathBuf,
+    pub project_name: String,
+}
+
+pub async fn resolve_repo_identity(cwd: &Path) -> Result<RepoIdentity> {
+    let common_dir = get_git_common_dir(cwd).await?;
+    let project_name = project_name_from_common_dir(&common_dir);
+
+    let working_root = match try_show_toplevel(cwd).await {
+        Some(root) => root,
+        None => find_main_worktree_path(cwd).await?,
+    };
+
+    Ok(RepoIdentity {
+        working_root,
+        project_name,
+    })
+}
+
+async fn get_git_common_dir(cwd: &Path) -> Result<PathBuf> {
     let output = Command::new("git")
-        .args(["rev-parse", "--show-toplevel"])
+        .args(["rev-parse", "--git-common-dir"])
         .current_dir(cwd)
         .output()
         .await?;
@@ -23,15 +44,72 @@ pub async fn get_repo_root(cwd: &Path) -> Result<PathBuf> {
         return Err(RftError::NotAGitRepo);
     }
 
-    let root = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    Ok(PathBuf::from(root))
+    let raw = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let path = PathBuf::from(&raw);
+
+    if path.is_absolute() {
+        Ok(path)
+    } else {
+        Ok(cwd
+            .join(&path)
+            .canonicalize()
+            .unwrap_or_else(|_| cwd.join(&path)))
+    }
 }
 
-pub fn get_repo_name(repo_root: &Path) -> String {
-    repo_root
-        .file_name()
-        .map(|name| name.to_string_lossy().into_owned())
-        .unwrap_or_else(|| "unknown".to_string())
+fn project_name_from_common_dir(common_dir: &Path) -> String {
+    let Some(dir_name) = common_dir.file_name() else {
+        return "unknown".to_string();
+    };
+    let dir_name = dir_name.to_string_lossy();
+
+    if dir_name.starts_with('.') {
+        common_dir
+            .parent()
+            .and_then(|p| p.file_name())
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "unknown".to_string())
+    } else {
+        dir_name.into_owned()
+    }
+}
+
+async fn try_show_toplevel(cwd: &Path) -> Option<PathBuf> {
+    let output = Command::new("git")
+        .args(["rev-parse", "--show-toplevel"])
+        .current_dir(cwd)
+        .output()
+        .await
+        .ok()?;
+
+    if !output.status.success() {
+        return None;
+    }
+
+    let root = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    Some(PathBuf::from(root))
+}
+
+async fn find_main_worktree_path(cwd: &Path) -> Result<PathBuf> {
+    let output = Command::new("git")
+        .args(["worktree", "list", "--porcelain"])
+        .current_dir(cwd)
+        .output()
+        .await?;
+
+    if !output.status.success() {
+        return Err(RftError::NotAGitRepo);
+    }
+
+    let raw = String::from_utf8_lossy(&output.stdout);
+    let worktrees = parse_porcelain_output(&raw, None)?;
+
+    worktrees
+        .iter()
+        .find(|wt| wt.is_main)
+        .or_else(|| worktrees.first())
+        .map(|wt| wt.path.clone())
+        .ok_or(RftError::NoMainWorktree)
 }
 
 pub async fn get_worktrees(
@@ -284,11 +362,32 @@ branch refs/heads/feature/login
     }
 
     #[test]
-    fn repo_name_from_path() {
-        assert_eq!(
-            get_repo_name(Path::new("/home/user/my-project")),
-            "my-project"
-        );
-        assert_eq!(get_repo_name(Path::new("/")), "unknown");
+    fn project_name_from_dot_git() {
+        let name = project_name_from_common_dir(Path::new("/home/user/myapp/.git"));
+        assert_eq!(name, "myapp");
+    }
+
+    #[test]
+    fn project_name_from_dot_bare() {
+        let name = project_name_from_common_dir(Path::new("/home/user/myapp/.bare"));
+        assert_eq!(name, "myapp");
+    }
+
+    #[test]
+    fn project_name_from_plain_bare() {
+        let name = project_name_from_common_dir(Path::new("/home/user/boss"));
+        assert_eq!(name, "boss");
+    }
+
+    #[test]
+    fn project_name_from_root_path() {
+        let name = project_name_from_common_dir(Path::new("/"));
+        assert_eq!(name, "unknown");
+    }
+
+    #[test]
+    fn project_name_from_dot_hidden_custom() {
+        let name = project_name_from_common_dir(Path::new("/projects/myapp/.gitdata"));
+        assert_eq!(name, "myapp");
     }
 }

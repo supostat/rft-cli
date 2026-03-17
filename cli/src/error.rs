@@ -8,6 +8,11 @@ pub enum RftError {
     #[error("no git repository found")]
     NotAGitRepo,
 
+    #[error(
+        "no main worktree found — run rft from a worktree directory or create one: git worktree add main"
+    )]
+    NoMainWorktree,
+
     #[error("worktree index {index} not found")]
     WorktreeNotFound { index: usize },
 
