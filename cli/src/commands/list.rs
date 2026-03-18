@@ -281,7 +281,7 @@ pub fn render_bordered(
     // Top border with title
     let title = format!(" rft \u{2022} {} ", repo_name); // • = U+2022
     let title_display_width = " rft . ".len() + repo_name.len() + 1; // • = 1 col
-    let top_remaining = cols.total.saturating_sub(2 + title_display_width); // ╭─ + ╮
+    let top_remaining = cols.total.saturating_sub(3 + title_display_width); // ╭─ + ╮
     println!(
         "{}{}{}{}",
         "╭─".dimmed(),
