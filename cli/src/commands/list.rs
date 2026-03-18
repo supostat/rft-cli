@@ -5,7 +5,8 @@ use crate::context::{build_context, filter_worktrees};
 use crate::ports::{BASE_OFFSET, PortAllocation, PortMapping, allocate_worktree_ports};
 use crate::sanitize::compose_project_name;
 
-const PORTS_PER_LINE: usize = 3;
+const PADDING: usize = 2;
+const MIN_WIDTH: usize = 50;
 
 pub async fn run() -> Result<()> {
     run_inner().await.map_err(miette::Report::new)
@@ -53,7 +54,7 @@ pub async fn run_inner() -> crate::error::Result<()> {
         });
     }
 
-    render_cards(&rows, &context.port_mappings, &context.config.host);
+    render_bordered(&rows, &context.port_mappings, &context.config.host);
     Ok(())
 }
 
@@ -144,6 +145,13 @@ fn render_table_as_text(rows: &[WorktreeRow]) -> String {
     lines.join("\n")
 }
 
+fn terminal_width() -> usize {
+    terminal_size::terminal_size()
+        .map(|(w, _)| w.0 as usize)
+        .unwrap_or(80)
+        .max(MIN_WIDTH)
+}
+
 fn port_hyperlink(port: u16, host: &str) -> String {
     format!("\x1b]8;;http://{host}:{port}\x1b\\{port}\x1b]8;;\x1b\\")
 }
@@ -156,37 +164,102 @@ fn format_port(allocation: &PortAllocation, host: &str) -> String {
     )
 }
 
-pub fn render_cards(rows: &[WorktreeRow], port_mappings: &[PortMapping], host: &str) {
+fn visible_port_width(allocation: &PortAllocation) -> usize {
+    // ENV_VAR=12345
+    allocation.env_var.len() + 1 + allocation.port.to_string().len()
+}
+
+fn status_display(status: &ContainerStatus) -> (String, usize) {
+    match status {
+        ContainerStatus::Up => (format!("{}", "● up".green()), 4),
+        ContainerStatus::Down => (format!("{}", "○ down".red()), 6),
+        ContainerStatus::Partial => (format!("{}", "◐ partial".yellow()), 9),
+        ContainerStatus::Unknown => (format!("{}", "○ unknown".dimmed()), 9),
+    }
+}
+
+pub fn render_bordered(rows: &[WorktreeRow], port_mappings: &[PortMapping], host: &str) {
+    let width = terminal_width();
+    let inner = width - 2; // left and right border
+
+    println!("┌{}┐", "─".repeat(inner));
+
     for (i, row) in rows.iter().enumerate() {
-        let status_display = match row.status {
-            ContainerStatus::Up => format!("{}", "● up".green()),
-            ContainerStatus::Down => format!("{}", "○ down".red()),
-            ContainerStatus::Partial => format!("{}", "◐ partial".yellow()),
-            ContainerStatus::Unknown => format!("{}", "○ unknown".dimmed()),
+        let (status_styled, status_len) = status_display(&row.status);
+        let index_prefix = format!("[{}] ", row.index);
+        let min_gap = 2;
+        let max_branch =
+            inner.saturating_sub(PADDING * 2 + status_len + index_prefix.len() + min_gap);
+        let branch_display = if row.branch.len() > max_branch {
+            format!("{}…", &row.branch[..max_branch.saturating_sub(1)])
+        } else {
+            row.branch.clone()
         };
+        let header = format!("{}{}", index_prefix, branch_display);
+        let gap = inner
+            .saturating_sub(PADDING)
+            .saturating_sub(header.len())
+            .saturating_sub(PADDING)
+            .saturating_sub(status_len);
 
         println!(
-            "{} {}  {}",
-            format!("[{}]", row.index).bold(),
-            row.branch.bold(),
-            status_display,
+            "│{}{}{}{}{}│",
+            " ".repeat(PADDING),
+            header.bold(),
+            " ".repeat(gap),
+            status_styled,
+            " ".repeat(PADDING),
         );
 
         if !row.ports.is_empty() {
-            for chunk in row.ports.chunks(PORTS_PER_LINE) {
-                let line = chunk
-                    .iter()
-                    .map(|allocation| format_port(allocation, host))
-                    .collect::<Vec<_>>()
-                    .join("  ");
-                println!("    {}", line.dimmed());
+            let port_area = inner - PADDING * 2;
+            let mut line_parts: Vec<String> = Vec::new();
+            let mut line_visible_len: usize = 0;
+
+            for allocation in &row.ports {
+                let visible_w = visible_port_width(allocation);
+                let needed = if line_parts.is_empty() {
+                    visible_w
+                } else {
+                    visible_w + 2 // "  " separator
+                };
+
+                if !line_parts.is_empty() && line_visible_len + needed > port_area {
+                    let pad = inner - PADDING - line_visible_len - PADDING;
+                    println!(
+                        "│{}{}{}│",
+                        " ".repeat(PADDING),
+                        line_parts.join("  ").dimmed(),
+                        " ".repeat(pad),
+                    );
+                    line_parts.clear();
+                    line_visible_len = 0;
+                }
+
+                if !line_parts.is_empty() {
+                    line_visible_len += 2;
+                }
+                line_parts.push(format_port(allocation, host));
+                line_visible_len += visible_w;
+            }
+
+            if !line_parts.is_empty() {
+                let pad = inner - PADDING - line_visible_len - PADDING;
+                println!(
+                    "│{}{}{}│",
+                    " ".repeat(PADDING),
+                    line_parts.join("  ").dimmed(),
+                    " ".repeat(pad),
+                );
             }
         }
 
         if i < rows.len() - 1 {
-            println!();
+            println!("├{}┤", "─".repeat(inner));
         }
     }
+
+    println!("└{}┘", "─".repeat(inner));
 
     if has_raw_port_warnings(port_mappings) {
         println!(

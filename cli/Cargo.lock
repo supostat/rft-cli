@@ -831,7 +831,7 @@ checksum = "dc897dd8d9e8bd1ed8cdad82b5966c3e0ecae09fb1907d58efaa013543185d0a"
 
 [[package]]
 name = "rft-cli"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "clap",
  "clap_complete",
@@ -845,6 +845,7 @@ dependencies = [
  "serde_json",
  "serde_yml",
  "tempfile",
+ "terminal_size",
  "thiserror",
  "tokio",
  "toml",
