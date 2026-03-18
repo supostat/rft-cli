@@ -6,6 +6,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-03-18
+
+### Added
+- `project_name_source` config: `"directory"` (default) or `"branch"` for Docker project naming
+- `host` config option for clickable port links (default: `localhost`), env `RFT_HOST`
+- `.rftrc.local.toml` — personal config (gitignored), merges over shared `.rftrc.toml`
+- `rft init` adds `.rftrc.local.toml` to `.gitignore` automatically
+
+### Changed
+- ratatui-style 3-column table for `rft list` with rounded corners, title border, dim borders
+- Table width fits content, not terminal width
+- OSC 8 clickable port links (cmd+click opens browser)
+- Status icons: `● up`, `○ down`, `◐ partial`
+- Start/stop output: `▶`/`■`/`✓` icons, no Docker project name
+- Default `project_name_source` is `"directory"` — stable Docker volumes across branch switches
+
+### Fixed
+- Self-copy truncation when source == destination (bare-repo single worktree)
+- Top-right corner alignment in bordered table
+
 ## [0.5.3] — 2026-03-18
 
 ### Changed
@@ -127,7 +147,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Fumadocs documentation website (22 pages)
 - Example Docker Compose project
 
-[Unreleased]: https://github.com/supostat/rft-cli/compare/v0.5.3...HEAD
+[Unreleased]: https://github.com/supostat/rft-cli/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/supostat/rft-cli/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/supostat/rft-cli/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/supostat/rft-cli/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/supostat/rft-cli/compare/v0.5.0...v0.5.1
