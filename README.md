@@ -130,7 +130,7 @@ Main branch keeps default ports (`3000`, `8080`) — rft doesn't touch it.
 
 ## Configuration
 
-Create `.rftrc.toml` in your repo root:
+Create `.rftrc.toml` in your repo root (shared, committed):
 
 ```toml
 # Extra files to sync to worktrees
@@ -142,14 +142,29 @@ port_offset = 30000
 # Main branch name (default: auto-detects "main" or "master")
 main_branch = "develop"
 
+# Docker project name source: "directory" (default) or "branch"
+# "directory" = stable volumes when switching branches in a worktree
+project_name_source = "directory"
+
+# Host for clickable port links (default: localhost)
+host = "localhost"
+
 # Environment variable templates (${VAR} substituted with allocated port)
 [env_overrides]
 API_URL = "http://localhost:${API_PORT}"
 ```
 
+Personal overrides in `.rftrc.local.toml` (gitignored, merged on top):
+
+```toml
+host = "192.168.1.50"
+```
+
+`rft init` creates `.rftrc.toml` and adds `.rftrc.local.toml` to `.gitignore`.
+
 Also supports `.rftrc.json` and `package.json` (`rft` field).
 
-Environment variables: `RFT_PORT_OFFSET`, `RFT_SYNC` (comma-separated).
+Environment variables: `RFT_PORT_OFFSET`, `RFT_SYNC`, `RFT_HOST`.
 
 ## Port Allocation
 

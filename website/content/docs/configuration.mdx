@@ -9,11 +9,25 @@ rft works without any configuration. When you need to customize behavior, create
 
 rft looks for configuration in the following order:
 
-1. `.rftrc.toml` (recommended)
+1. `.rftrc.toml` (recommended, committed)
 2. `.rftrc.json`
 3. `package.json` (under the `rft` key)
 
 Only the first found file is used.
+
+### Local overrides
+
+Create `.rftrc.local.toml` for personal settings that shouldn't be committed (e.g., `host`). Fields from the local file merge on top of the shared config:
+
+```toml
+# .rftrc.local.toml (gitignored)
+host = "192.168.1.50"
+port_offset = 30000
+```
+
+`rft init` automatically adds `.rftrc.local.toml` to `.gitignore`.
+
+**Priority:** `.rftrc.toml` → `.rftrc.local.toml` → environment variables.
 
 ## Options
 
@@ -46,6 +60,31 @@ main_branch = "develop"
 ```
 
 rft excludes the main branch from worktree management — it keeps default ports and is never started/stopped by rft.
+
+### host
+
+The hostname used for clickable port links in `rft list`. Default is `localhost`.
+
+```toml
+host = "192.168.1.50"
+```
+
+Typically set in `.rftrc.local.toml` since it's machine-specific.
+
+### project_name_source
+
+Controls how Docker Compose project names are generated. Default is `"directory"`.
+
+```toml
+project_name_source = "directory"
+```
+
+| Value | Project name | Use case |
+|-------|-------------|----------|
+| `"directory"` | `repo-rft-1-worktree-dir` | Stable volumes when switching branches in a worktree |
+| `"branch"` | `repo-rft-1-feature-auth` | Project name reflects the current branch |
+
+With `"directory"`, Docker volumes persist across branch switches within the same worktree — your database survives `git switch`.
 
 ### env_overrides
 
@@ -100,5 +139,6 @@ These environment variables override config file values:
 |----------|-------------|---------|
 | `RFT_PORT_OFFSET` | Override `port_offset` | `RFT_PORT_OFFSET=30000` |
 | `RFT_SYNC` | Override `sync` (comma-separated) | `RFT_SYNC=nginx/,scripts/` |
+| `RFT_HOST` | Override `host` | `RFT_HOST=192.168.1.50` |
 
-Environment variables take precedence over config file values.
+Environment variables take precedence over all config file values (including `.rftrc.local.toml`).
