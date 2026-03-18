@@ -6,6 +6,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.5.3] — 2026-03-18
+
+### Changed
+- Bordered layout for `rft list` with box-drawing characters
+- Adaptive port wrapping based on terminal width
+- Branch names truncated with `…` when terminal is narrow
+
 ## [0.5.2] — 2026-03-17
 
 ### Changed
@@ -120,7 +127,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Fumadocs documentation website (22 pages)
 - Example Docker Compose project
 
-[Unreleased]: https://github.com/supostat/rft-cli/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/supostat/rft-cli/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/supostat/rft-cli/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/supostat/rft-cli/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/supostat/rft-cli/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/supostat/rft-cli/compare/v0.4.2...v0.5.0
