@@ -7,8 +7,8 @@ const DEFAULT_HOST: &str = "localhost";
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub enum ProjectNameSource {
-    #[default]
     Branch,
+    #[default]
     Directory,
 }
 
@@ -52,8 +52,8 @@ struct PackageJson {
 
 fn parse_project_name_source(value: &str) -> ProjectNameSource {
     match value {
-        "directory" => ProjectNameSource::Directory,
-        _ => ProjectNameSource::Branch,
+        "branch" => ProjectNameSource::Branch,
+        _ => ProjectNameSource::Directory,
     }
 }
 
@@ -376,11 +376,26 @@ port_offset = 30000
     }
 
     #[test]
-    fn project_name_source_defaults_to_branch() {
+    #[test]
+    fn project_name_source_branch() {
         let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join(".rftrc.toml"),
+            r#"project_name_source = "branch""#,
+        )
+        .unwrap();
+
         let config = load_config(dir.path());
 
         assert_eq!(config.project_name_source, ProjectNameSource::Branch);
+    }
+
+    #[test]
+    fn project_name_source_defaults_to_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = load_config(dir.path());
+
+        assert_eq!(config.project_name_source, ProjectNameSource::Directory);
     }
 
     #[test]
