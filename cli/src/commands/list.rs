@@ -54,7 +54,12 @@ pub async fn run_inner() -> crate::error::Result<()> {
         });
     }
 
-    render_bordered(&rows, &context.port_mappings, &context.config.host);
+    render_bordered(
+        &rows,
+        &context.port_mappings,
+        &context.config.host,
+        &context.repo_name,
+    );
     Ok(())
 }
 
@@ -165,11 +170,10 @@ fn format_port(allocation: &PortAllocation, host: &str) -> String {
 }
 
 fn visible_port_width(allocation: &PortAllocation) -> usize {
-    // ENV_VAR=12345
     allocation.env_var.len() + 1 + allocation.port.to_string().len()
 }
 
-fn status_display(status: &ContainerStatus) -> (String, usize) {
+fn status_styled(status: &ContainerStatus) -> (String, usize) {
     match status {
         ContainerStatus::Up => (format!("{}", "● up".green()), 4),
         ContainerStatus::Down => (format!("{}", "○ down".red()), 6),
@@ -178,88 +182,190 @@ fn status_display(status: &ContainerStatus) -> (String, usize) {
     }
 }
 
-pub fn render_bordered(rows: &[WorktreeRow], port_mappings: &[PortMapping], host: &str) {
-    let width = terminal_width();
-    let inner = width - 2; // left and right border
+struct ColumnWidths {
+    branch: usize,
+    status: usize,
+    ports: usize,
+}
 
-    println!("┌{}┐", "─".repeat(inner));
+fn calculate_columns(rows: &[WorktreeRow], total_width: usize) -> ColumnWidths {
+    let status_width = 12; // "◐ partial" + padding
+    let borders = 4; // │ between 3 cols + outer │
+    let min_ports = 28; // "MAILHOG_SMTP_PORT=21026" + padding
+
+    let max_branch_content = rows
+        .iter()
+        .map(|r| format!("[{}] {}", r.index, r.branch).len())
+        .max()
+        .unwrap_or(10);
+    let natural_branch = max_branch_content + PADDING * 2;
+    let max_branch = total_width.saturating_sub(borders + status_width + min_ports);
+    let branch_width = natural_branch.min(max_branch);
+
+    let ports_width = total_width.saturating_sub(borders + branch_width + status_width);
+
+    ColumnWidths {
+        branch: branch_width,
+        status: status_width,
+        ports: ports_width,
+    }
+}
+
+fn print_border_row(cols: &ColumnWidths, left: &str, mid: &str, right: &str) {
+    println!(
+        "{}",
+        format!(
+            "{}{}{}{}{}{}{}",
+            left,
+            "─".repeat(cols.branch),
+            mid,
+            "─".repeat(cols.status),
+            mid,
+            "─".repeat(cols.ports),
+            right,
+        )
+        .dimmed()
+    );
+}
+
+fn print_cell_row(
+    cols: &ColumnWidths,
+    branch_content: &str,
+    branch_visible_len: usize,
+    status_content: &str,
+    status_visible_len: usize,
+    port_content: &str,
+    port_visible_len: usize,
+) {
+    let b_pad = cols.branch.saturating_sub(branch_visible_len);
+    let s_pad = cols.status.saturating_sub(status_visible_len);
+    let p_pad = cols.ports.saturating_sub(port_visible_len);
+
+    let port_padded = format!(" {}{}", port_content, " ".repeat(p_pad.saturating_sub(1)));
+    println!(
+        "{}{}{}{}{}{}{}{}{}",
+        "│".dimmed(),
+        branch_content,
+        " ".repeat(b_pad),
+        "│".dimmed(),
+        status_content,
+        " ".repeat(s_pad),
+        "│".dimmed(),
+        port_padded,
+        "│".dimmed(),
+    );
+}
+
+pub fn render_bordered(
+    rows: &[WorktreeRow],
+    port_mappings: &[PortMapping],
+    host: &str,
+    repo_name: &str,
+) {
+    let width = terminal_width();
+    let cols = calculate_columns(rows, width);
+
+    // Top border with title
+    let title = format!(" rft \u{2022} {} ", repo_name); // • = U+2022
+    let title_display_width = " rft . ".len() + repo_name.len() + 1; // • = 1 col
+    let top_remaining = width.saturating_sub(2 + title_display_width); // ╭─ + ╮
+    println!(
+        "{}{}{}{}",
+        "╭─".dimmed(),
+        title.bold(),
+        "─".repeat(top_remaining).dimmed(),
+        "╮".dimmed(),
+    );
+
+    // Header row
+    let branch_header = format!(
+        "  {:<w$}",
+        "Branch",
+        w = cols.branch.saturating_sub(PADDING)
+    );
+    let status_header = format!(" {:<w$}", "Status", w = cols.status.saturating_sub(1));
+    let ports_header = format!(" {:<w$}", "Ports", w = cols.ports.saturating_sub(1));
+    println!(
+        "{}{}{}{}{}{}{}",
+        "│".dimmed(),
+        branch_header.bold(),
+        "│".dimmed(),
+        status_header.bold(),
+        "│".dimmed(),
+        ports_header.bold(),
+        "│".dimmed(),
+    );
+
+    // Header separator
+    print_border_row(&cols, "├", "┼", "┤");
 
     for (i, row) in rows.iter().enumerate() {
-        let (status_styled, status_len) = status_display(&row.status);
-        let index_prefix = format!("[{}] ", row.index);
-        let min_gap = 2;
-        let max_branch =
-            inner.saturating_sub(PADDING * 2 + status_len + index_prefix.len() + min_gap);
-        let branch_display = if row.branch.len() > max_branch {
-            format!("{}…", &row.branch[..max_branch.saturating_sub(1)])
+        let (styled_status, status_display_width) = status_styled(&row.status);
+        let branch_text = format!("  [{}] {}", row.index, row.branch);
+        let branch_visible_len = branch_text.len();
+
+        // Truncate branch if needed
+        let branch_display = if branch_visible_len > cols.branch {
+            let max = cols.branch.saturating_sub(1);
+            format!("{}…", &branch_text[..max.saturating_sub(1)])
+                .bold()
+                .to_string()
         } else {
-            row.branch.clone()
+            branch_text.bold().to_string()
         };
-        let header = format!("{}{}", index_prefix, branch_display);
-        let gap = inner
-            .saturating_sub(PADDING)
-            .saturating_sub(header.len())
-            .saturating_sub(PADDING)
-            .saturating_sub(status_len);
+        let branch_vis = branch_visible_len.min(cols.branch);
 
-        println!(
-            "│{}{}{}{}{}│",
-            " ".repeat(PADDING),
-            header.bold(),
-            " ".repeat(gap),
-            status_styled,
-            " ".repeat(PADDING),
-        );
+        let status_text = format!(" {}", styled_status);
+        let status_vis = status_display_width + 1;
 
-        if !row.ports.is_empty() {
-            let port_area = inner - PADDING * 2;
-            let mut line_parts: Vec<String> = Vec::new();
-            let mut line_visible_len: usize = 0;
+        if row.ports.is_empty() {
+            print_cell_row(
+                &cols,
+                &branch_display,
+                branch_vis,
+                &status_text,
+                status_vis,
+                "-",
+                1,
+            );
+        } else {
+            // First port on the same line as branch+status
+            let first_port = format_port(&row.ports[0], host);
+            let first_vis = visible_port_width(&row.ports[0]);
+            print_cell_row(
+                &cols,
+                &branch_display,
+                branch_vis,
+                &status_text,
+                status_vis,
+                &first_port,
+                first_vis,
+            );
 
-            for allocation in &row.ports {
-                let visible_w = visible_port_width(allocation);
-                let needed = if line_parts.is_empty() {
-                    visible_w
-                } else {
-                    visible_w + 2 // "  " separator
-                };
-
-                if !line_parts.is_empty() && line_visible_len + needed > port_area {
-                    let pad = inner - PADDING - line_visible_len - PADDING;
-                    println!(
-                        "│{}{}{}│",
-                        " ".repeat(PADDING),
-                        line_parts.join("  ").dimmed(),
-                        " ".repeat(pad),
-                    );
-                    line_parts.clear();
-                    line_visible_len = 0;
-                }
-
-                if !line_parts.is_empty() {
-                    line_visible_len += 2;
-                }
-                line_parts.push(format_port(allocation, host));
-                line_visible_len += visible_w;
-            }
-
-            if !line_parts.is_empty() {
-                let pad = inner - PADDING - line_visible_len - PADDING;
-                println!(
-                    "│{}{}{}│",
-                    " ".repeat(PADDING),
-                    line_parts.join("  ").dimmed(),
-                    " ".repeat(pad),
-                );
+            // Remaining ports on separate lines
+            for allocation in &row.ports[1..] {
+                let port = format_port(allocation, host);
+                let vis = visible_port_width(allocation);
+                print_cell_row(&cols, "", 0, "", 0, &port, vis);
             }
         }
 
         if i < rows.len() - 1 {
-            println!("├{}┤", "─".repeat(inner));
+            print_border_row(&cols, "├", "┼", "┤");
         }
     }
 
-    println!("└{}┘", "─".repeat(inner));
+    // Bottom border
+    println!(
+        "{}{}{}{}{}{}{}",
+        "╰".dimmed(),
+        "─".repeat(cols.branch).dimmed(),
+        "┴".dimmed(),
+        "─".repeat(cols.status).dimmed(),
+        "┴".dimmed(),
+        "─".repeat(cols.ports).dimmed(),
+        "╯".dimmed(),
+    );
 
     if has_raw_port_warnings(port_mappings) {
         println!(
