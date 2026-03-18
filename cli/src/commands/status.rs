@@ -16,8 +16,11 @@ pub async fn run() -> Result<()> {
     let mut running_count = 0usize;
 
     for worktree in &non_main {
-        let project_name =
-            compose_project_name(&context.repo_name, worktree.index, &worktree.branch);
+        let project_name = compose_project_name(
+            &context.repo_name,
+            worktree.index,
+            &worktree.project_label(&context.config.project_name_source),
+        );
         let status = get_container_status(&project_name).await;
 
         if status == ContainerStatus::Up || status == ContainerStatus::Partial {

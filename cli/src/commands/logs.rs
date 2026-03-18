@@ -13,7 +13,11 @@ pub async fn run(index: usize, service: Option<String>, no_follow: bool) -> Resu
         context.config.main_branch.as_deref(),
     )
     .await?;
-    let project_name = compose_project_name(&context.repo_name, worktree.index, &worktree.branch);
+    let project_name = compose_project_name(
+        &context.repo_name,
+        worktree.index,
+        &worktree.project_label(&context.config.project_name_source),
+    );
 
     let mut args = vec![
         "compose".to_string(),

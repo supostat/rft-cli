@@ -25,8 +25,11 @@ pub async fn run_inner() -> crate::error::Result<()> {
     let mut rows = Vec::new();
 
     for worktree in &non_main {
-        let project_name =
-            compose_project_name(&context.repo_name, worktree.index, &worktree.branch);
+        let project_name = compose_project_name(
+            &context.repo_name,
+            worktree.index,
+            &worktree.project_label(&context.config.project_name_source),
+        );
         let ports =
             match allocate_worktree_ports(&context.port_mappings, worktree.index, base_offset) {
                 Ok(ports) => ports,
@@ -103,8 +106,11 @@ pub async fn list_as_text() -> crate::error::Result<String> {
     let mut rows = Vec::new();
 
     for worktree in &non_main {
-        let project_name =
-            compose_project_name(&context.repo_name, worktree.index, &worktree.branch);
+        let project_name = compose_project_name(
+            &context.repo_name,
+            worktree.index,
+            &worktree.project_label(&context.config.project_name_source),
+        );
         let ports = allocate_worktree_ports(&context.port_mappings, worktree.index, base_offset)
             .unwrap_or_default();
 

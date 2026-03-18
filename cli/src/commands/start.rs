@@ -6,6 +6,7 @@ use tokio::task::JoinSet;
 
 use crate::commands::list;
 use crate::compose::ComposeFile;
+use crate::config::ProjectNameSource;
 use crate::context::{build_context, filter_worktrees};
 use crate::error::{Result, RftError};
 use crate::executor::Executor;
@@ -25,6 +26,7 @@ struct WorktreeStartParams {
     env_overrides: HashMap<String, String>,
     base_offset: u32,
     executor: Executor,
+    project_name_source: ProjectNameSource,
 }
 
 pub async fn run(indices: Vec<usize>, dry_run: bool) -> Result<()> {
@@ -68,7 +70,13 @@ pub async fn run(indices: Vec<usize>, dry_run: bool) -> Result<()> {
 
     let project_names: Vec<String> = targets
         .iter()
-        .map(|wt| compose_project_name(&context.repo_name, wt.index, &wt.branch))
+        .map(|wt| {
+            compose_project_name(
+                &context.repo_name,
+                wt.index,
+                &wt.project_label(&context.config.project_name_source),
+            )
+        })
         .collect();
 
     let mut join_set = JoinSet::new();
@@ -84,6 +92,7 @@ pub async fn run(indices: Vec<usize>, dry_run: bool) -> Result<()> {
             env_overrides: context.config.env_overrides.clone(),
             base_offset,
             executor,
+            project_name_source: context.config.project_name_source.clone(),
         };
 
         join_set.spawn(async move { start_single_worktree(params).await });
@@ -161,7 +170,7 @@ async fn start_single_worktree(params: WorktreeStartParams) -> Result<()> {
     let project_name = compose_project_name(
         &params.repo_name,
         params.worktree.index,
-        &params.worktree.branch,
+        &params.worktree.project_label(&params.project_name_source),
     );
 
     println!(

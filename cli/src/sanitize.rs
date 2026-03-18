@@ -16,11 +16,12 @@ pub fn sanitize(input: &str) -> String {
     collapse_and_trim_dashes(&replaced)
 }
 
-/// Generate Docker Compose project name: `{repo}-rft-{index}-{branch}`.
-pub fn compose_project_name(repo: &str, index: usize, branch: &str) -> String {
+/// Generate Docker Compose project name: `{repo}-rft-{index}-{label}`.
+/// `label` is either the branch name or directory name, depending on config.
+pub fn compose_project_name(repo: &str, index: usize, label: &str) -> String {
     let sanitized_repo = sanitize(repo);
-    let sanitized_branch = sanitize(branch);
-    format!("{sanitized_repo}-rft-{index}-{sanitized_branch}")
+    let sanitized_label = sanitize(label);
+    format!("{sanitized_repo}-rft-{index}-{sanitized_label}")
 }
 
 fn collapse_and_trim_dashes(input: &str) -> String {

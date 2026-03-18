@@ -17,8 +17,11 @@ pub async fn run(indices: Vec<usize>) -> Result<()> {
     let mut join_set = JoinSet::new();
 
     for worktree in targets {
-        let project_name =
-            compose_project_name(&context.repo_name, worktree.index, &worktree.branch);
+        let project_name = compose_project_name(
+            &context.repo_name,
+            worktree.index,
+            &worktree.project_label(&context.config.project_name_source),
+        );
         let branch = worktree.branch.clone();
         let index = worktree.index;
         let worktree_path = worktree.path.clone();

@@ -19,8 +19,11 @@ pub async fn run() -> Result<()> {
 
     let mut stop_set = JoinSet::new();
     for worktree in &non_main {
-        let project_name =
-            compose_project_name(&context.repo_name, worktree.index, &worktree.branch);
+        let project_name = compose_project_name(
+            &context.repo_name,
+            worktree.index,
+            &worktree.project_label(&context.config.project_name_source),
+        );
         let branch = worktree.branch.clone();
         let index = worktree.index;
         let worktree_path = worktree.path.clone();

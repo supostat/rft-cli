@@ -5,6 +5,13 @@ use serde::Deserialize;
 
 const DEFAULT_HOST: &str = "localhost";
 
+#[derive(Debug, Clone, Default, PartialEq)]
+pub enum ProjectNameSource {
+    #[default]
+    Branch,
+    Directory,
+}
+
 #[derive(Debug, Clone)]
 pub struct RftConfig {
     pub sync: Vec<String>,
@@ -12,6 +19,7 @@ pub struct RftConfig {
     pub port_offset: Option<u32>,
     pub main_branch: Option<String>,
     pub host: String,
+    pub project_name_source: ProjectNameSource,
 }
 
 impl Default for RftConfig {
@@ -22,6 +30,7 @@ impl Default for RftConfig {
             port_offset: None,
             main_branch: None,
             host: DEFAULT_HOST.to_string(),
+            project_name_source: ProjectNameSource::default(),
         }
     }
 }
@@ -33,11 +42,19 @@ struct ConfigFile {
     port_offset: Option<u32>,
     main_branch: Option<String>,
     host: Option<String>,
+    project_name_source: Option<String>,
 }
 
 #[derive(Deserialize)]
 struct PackageJson {
     rft: Option<ConfigFile>,
+}
+
+fn parse_project_name_source(value: &str) -> ProjectNameSource {
+    match value {
+        "directory" => ProjectNameSource::Directory,
+        _ => ProjectNameSource::Branch,
+    }
 }
 
 impl From<ConfigFile> for RftConfig {
@@ -48,6 +65,11 @@ impl From<ConfigFile> for RftConfig {
             port_offset: file.port_offset,
             main_branch: file.main_branch,
             host: file.host.unwrap_or_else(|| DEFAULT_HOST.to_string()),
+            project_name_source: file
+                .project_name_source
+                .as_deref()
+                .map(parse_project_name_source)
+                .unwrap_or_default(),
         }
     }
 }
@@ -101,6 +123,9 @@ fn apply_local_overrides(config: &mut RftConfig, repo_root: &Path) {
     }
     if let Some(host) = local.host {
         config.host = host;
+    }
+    if let Some(source) = local.project_name_source.as_deref() {
+        config.project_name_source = parse_project_name_source(source);
     }
 }
 
@@ -334,6 +359,28 @@ port_offset = 30000
         apply_env_overrides(&mut config, fake_env(&[("RFT_SYNC", "a.yml, b.yml")]));
 
         assert_eq!(config.sync, vec!["a.yml", "b.yml"]);
+    }
+
+    #[test]
+    fn project_name_source_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join(".rftrc.toml"),
+            r#"project_name_source = "directory""#,
+        )
+        .unwrap();
+
+        let config = load_config(dir.path());
+
+        assert_eq!(config.project_name_source, ProjectNameSource::Directory);
+    }
+
+    #[test]
+    fn project_name_source_defaults_to_branch() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = load_config(dir.path());
+
+        assert_eq!(config.project_name_source, ProjectNameSource::Branch);
     }
 
     #[test]

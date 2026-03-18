@@ -12,6 +12,22 @@ pub struct WorktreeInfo {
     pub index: usize,
 }
 
+impl WorktreeInfo {
+    pub fn dir_name(&self) -> String {
+        self.path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_else(|| self.branch.clone())
+    }
+
+    pub fn project_label(&self, source: &crate::config::ProjectNameSource) -> String {
+        match source {
+            crate::config::ProjectNameSource::Directory => self.dir_name(),
+            crate::config::ProjectNameSource::Branch => self.branch.clone(),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct RepoIdentity {
     pub working_root: PathBuf,
