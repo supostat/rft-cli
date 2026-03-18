@@ -186,28 +186,41 @@ struct ColumnWidths {
     branch: usize,
     status: usize,
     ports: usize,
+    total: usize,
 }
 
-fn calculate_columns(rows: &[WorktreeRow], total_width: usize) -> ColumnWidths {
+fn calculate_columns(rows: &[WorktreeRow], max_width: usize) -> ColumnWidths {
     let status_width = 12; // "◐ partial" + padding
     let borders = 4; // │ between 3 cols + outer │
-    let min_ports = 28; // "MAILHOG_SMTP_PORT=21026" + padding
 
-    let max_branch_content = rows
+    let branch_natural = rows
         .iter()
         .map(|r| format!("[{}] {}", r.index, r.branch).len())
         .max()
-        .unwrap_or(10);
-    let natural_branch = max_branch_content + PADDING * 2;
-    let max_branch = total_width.saturating_sub(borders + status_width + min_ports);
-    let branch_width = natural_branch.min(max_branch);
+        .unwrap_or(10)
+        + PADDING * 2;
 
-    let ports_width = total_width.saturating_sub(borders + branch_width + status_width);
+    let ports_natural = rows
+        .iter()
+        .flat_map(|r| r.ports.iter())
+        .map(visible_port_width)
+        .max()
+        .unwrap_or(5)
+        + PADDING * 2;
+
+    let content_width = (branch_natural + status_width + ports_natural + borders).min(max_width);
+
+    let min_ports = 28;
+    let min_branch = 20; // "[1] feature/auth" + padding
+    let max_branch = content_width.saturating_sub(borders + status_width + min_ports);
+    let branch_width = branch_natural.min(max_branch).max(min_branch);
+    let ports_width = content_width.saturating_sub(borders + branch_width + status_width);
 
     ColumnWidths {
         branch: branch_width,
         status: status_width,
         ports: ports_width,
+        total: branch_width + status_width + ports_width + borders,
     }
 }
 
@@ -268,7 +281,7 @@ pub fn render_bordered(
     // Top border with title
     let title = format!(" rft \u{2022} {} ", repo_name); // • = U+2022
     let title_display_width = " rft . ".len() + repo_name.len() + 1; // • = 1 col
-    let top_remaining = width.saturating_sub(2 + title_display_width); // ╭─ + ╮
+    let top_remaining = cols.total.saturating_sub(2 + title_display_width); // ╭─ + ╮
     println!(
         "{}{}{}{}",
         "╭─".dimmed(),
