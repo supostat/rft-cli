@@ -376,7 +376,6 @@ port_offset = 30000
     }
 
     #[test]
-    #[test]
     fn project_name_source_branch() {
         let dir = tempfile::tempdir().unwrap();
         fs::write(
